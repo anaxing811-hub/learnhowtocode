@@ -11,7 +11,10 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   // The server cannot know the resolved theme, so render a stable placeholder
-  // until the client knows which icon is correct.
+  // until the client knows which icon is correct. This is the documented
+  // next-themes pattern; the single extra render is the cost of not shipping a
+  // hydration mismatch.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   return (

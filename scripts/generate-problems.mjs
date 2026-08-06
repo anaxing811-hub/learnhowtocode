@@ -862,7 +862,7 @@ for j in range(m):
 let totalTests = 0;
 
 for (const problem of problems) {
-  const cases = problem.cases().map((c, index) => {
+  const cases = problem.cases().map((c) => {
     const input = c.input.endsWith("\n") ? c.input : c.input + "\n";
     return {
       input,
@@ -876,16 +876,6 @@ for (const problem of problems) {
     path.join(outDir, `${problem.id}.tests.json`),
     JSON.stringify(cases, null, 1),
   );
-
-  const frontmatter = {
-    title: problem.title,
-    tier: problem.tier,
-    order: problem.order,
-    topics: problem.topics,
-    timeLimitMs: problem.timeLimitMs,
-    hints: problem.hints,
-    starter: problem.starter,
-  };
 
   // Emit YAML by hand so multi-line starter code keeps its formatting.
   const yaml = [

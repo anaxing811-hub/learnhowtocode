@@ -97,8 +97,11 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const hydrated = useRef(false);
 
-  // Hydrate from localStorage after mount so SSR output stays stable.
+  // Hydrate from localStorage after mount so the server and the first client
+  // render agree. localStorage does not exist on the server, so this genuinely
+  // cannot be done during render without a hydration mismatch.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(readLocal());
     hydrated.current = true;
   }, []);
@@ -132,6 +135,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     if (!supabase || !user) return;
 
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncing(true);
 
     void (async () => {

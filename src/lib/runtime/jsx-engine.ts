@@ -65,7 +65,9 @@ export function compileSnippet(source: string): CompiledSnippet {
 
   const logs: string[] = [];
   const moduleExports: Record<string, unknown> = {};
-  const module = { exports: moduleExports };
+  // Named `snippetModule`, not `module`: assigning to a bare `module` binding
+  // trips bundler heuristics that treat it as the CommonJS global.
+  const snippetModule = { exports: moduleExports };
 
   const sandboxConsole = {
     log: (...args: unknown[]) => logs.push(args.map(format).join(" ")),
@@ -75,7 +77,6 @@ export function compileSnippet(source: string): CompiledSnippet {
   };
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     const factory = new Function(
       "require",
       "module",
@@ -84,7 +85,7 @@ export function compileSnippet(source: string): CompiledSnippet {
       "console",
       compiled,
     );
-    factory(createRequire(logs), module, moduleExports, React, sandboxConsole);
+    factory(createRequire(logs), snippetModule, moduleExports, React, sandboxConsole);
   } catch (err) {
     throw new SnippetError(
       err instanceof Error ? err.message : String(err),

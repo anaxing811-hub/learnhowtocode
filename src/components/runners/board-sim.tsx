@@ -46,8 +46,6 @@ export function BoardSim({
 }) {
   const [playing, setPlaying] = useState(autoPlay);
   const [cursor, setCursor] = useState(0);
-  const [pins, setPins] = useState<Record<number, PinState>>(emptyPins);
-  const [serial, setSerial] = useState<string[]>([]);
   const rafRef = useRef<number | null>(null);
   const startedRef = useRef<number>(0);
 
@@ -69,8 +67,11 @@ export function BoardSim({
     return found.length ? found.slice(0, 8) : DEFAULT_LED_PINS.slice(0, 2);
   }, [events, ledPins]);
 
-  // Recompute board state whenever the cursor moves.
-  useEffect(() => {
+  // Board state is a pure function of the timeline and the playhead, so it is
+  // computed during render rather than stored. Keeping it in state would mean
+  // an extra render per frame and a window where the pins and the cursor
+  // disagree.
+  const { pins, serial } = useMemo(() => {
     const next = emptyPins();
     const lines: string[] = [];
     for (const e of events) {
@@ -80,8 +81,7 @@ export function BoardSim({
       if (e.kind === "M" && e.pin != null) next[e.pin].mode = e.value ?? 0;
       if (e.kind === "S") lines.push(e.text ?? "");
     }
-    setPins(next);
-    setSerial(lines);
+    return { pins: next, serial: lines };
   }, [cursor, events]);
 
   // Drive the cursor in real time while playing.
@@ -111,11 +111,16 @@ export function BoardSim({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, duration]);
 
-  // A fresh compile resets the playhead.
-  useEffect(() => {
+  // A fresh compile resets the playhead. This is React's documented
+  // "adjusting state when a prop changes" pattern: compare during render and
+  // set state immediately, which React handles without an extra commit. It
+  // uses state rather than a ref because refs must not be read during render.
+  const [seenEvents, setSeenEvents] = useState(events);
+  if (seenEvents !== events) {
+    setSeenEvents(events);
     setCursor(0);
     setPlaying(autoPlay);
-  }, [events, autoPlay]);
+  }
 
   const seconds = (cursor / 1_000_000).toFixed(2);
   const total = (duration / 1_000_000).toFixed(2);

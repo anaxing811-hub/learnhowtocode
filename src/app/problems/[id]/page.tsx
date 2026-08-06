@@ -99,7 +99,6 @@ export default async function ProblemPage({
               is fetched from /problem-tests on submit. */}
           <ProblemWorkbench
             problemId={problem.id}
-            title={problem.title}
             samples={samples}
             testCount={problem.tests.length}
             starter={problem.starter}

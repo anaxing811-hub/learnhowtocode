@@ -1,29 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
+/**
+ * Subscribes to a media query.
+ *
+ * `useSyncExternalStore` is the right tool here rather than useState plus an
+ * effect: it reads the value during render on the client, returns the server
+ * snapshot during SSR, and re-renders on change — without the extra render an
+ * effect-then-setState pattern costs.
+ */
 export function useMediaQuery(query: string) {
-  // Start false so the server and first client render agree; the effect
-  // corrects it before paint.
-  const [matches, setMatches] = useState(false);
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const mql = window.matchMedia(query);
+      mql.addEventListener("change", onChange);
+      return () => mql.removeEventListener("change", onChange);
+    },
+    [query],
+  );
 
-  useEffect(() => {
-    const mql = window.matchMedia(query);
-    setMatches(mql.matches);
-    const onChange = (e: MediaQueryListEvent) => setMatches(e.matches);
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, [query]);
+  const getSnapshot = useCallback(
+    () => window.matchMedia(query).matches,
+    [query],
+  );
 
-  return matches;
+  // The server has no viewport. Reporting false means the first paint matches
+  // the server output and then corrects itself, rather than mismatching.
+  const getServerSnapshot = () => false;
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 /**
  * Whether this device should download and run the WebAssembly toolchains.
  *
- * The C++ toolchain is ~45 MB and Pyodide with numpy is ~25 MB. That is a bad
- * trade on a phone, so lessons render code read-only there and invite the
- * reader back on a laptop.
+ * The C++ toolchain is tens of megabytes and Pyodide with numpy is more again.
+ * That is a bad trade on a phone, so lessons render code read-only there and
+ * invite the reader back on a laptop.
  */
 export function useCanRunCode() {
   const wideEnough = useMediaQuery("(min-width: 1024px)");

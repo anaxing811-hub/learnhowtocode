@@ -14,7 +14,7 @@ import {
 import { Editor } from "@/components/runners/editor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCanRunCode } from "@/hooks/use-media-query";
 import { useProgress } from "@/lib/progress/store";
 import {
@@ -42,7 +42,6 @@ async function loadTests(problemId: string): Promise<TestCase[]> {
 
 export function ProblemWorkbench({
   problemId,
-  title,
   samples,
   testCount,
   starter,
@@ -50,7 +49,6 @@ export function ProblemWorkbench({
   hints,
 }: {
   problemId: string;
-  title: string;
   samples: TestCase[];
   testCount: number;
   starter: Partial<Record<ProblemLang, string>>;

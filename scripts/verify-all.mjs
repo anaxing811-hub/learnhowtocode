@@ -165,22 +165,45 @@ try {
   fail("genuine CPython semantics (bignum ints)", (await runnerText(0)).slice(0, 300));
 }
 
-// numpy comes from the package CDN, which this sandbox blocks.
-await page.locator('[data-testid="code-runner"]').first().locator(".cm-content").click();
-await page.keyboard.press("ControlOrMeta+a");
-await page.keyboard.insertText("import numpy as np\nprint(np.arange(5).sum())");
-await clickRun(0);
-try {
-  await waitForOutput(0, "10", 240_000);
-  pass("NumPy loads and computes");
-} catch {
-  const text = await runnerText(0);
+// NumPy and friends come from the Pyodide package CDN. Pre-flight it rather
+// than waiting on a request that may never resolve: a host blocked at the
+// network level does not fail fast, it simply hangs.
+const cdnReachable = await page.evaluate(async () => {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    await fetch("https://cdn.jsdelivr.net/pyodide/", {
+      method: "HEAD",
+      mode: "no-cors",
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+if (!cdnReachable) {
   skip(
     "NumPy loads and computes",
-    text.includes("Failed to fetch") || text.includes("ModuleNotFound")
-      ? "scientific wheels come from the Pyodide CDN, blocked by this sandbox's egress policy"
-      : text.slice(0, 200),
+    "the Pyodide package CDN is unreachable from this network, so scientific packages cannot be exercised here",
   );
+} else {
+  await page
+    .locator('[data-testid="code-runner"]')
+    .first()
+    .locator(".cm-content")
+    .click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.insertText("import numpy as np\nprint(np.arange(5).sum())");
+  await clickRun(0);
+  try {
+    await waitForOutput(0, "10", 240_000);
+    pass("NumPy loads and computes");
+  } catch {
+    fail("NumPy loads and computes", (await runnerText(0)).slice(0, 200));
+  }
 }
 
 /* ================================================================== */
