@@ -90,7 +90,7 @@ try {
 // toy interpreter would fail on.
 await page.locator('[data-testid="code-runner"]').first().locator(".cm-content").click();
 await page.keyboard.press("ControlOrMeta+a");
-await page.keyboard.type(
+await page.keyboard.insertText(
   '#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\nstruct P { std::string n; int a; };\ntemplate <typename T> T biggest(T x, T y) { return x > y ? x : y; }\nint main() {\n std::vector<P> v{{"cy",2},{"ana",3},{"bo",1}};\n std::sort(v.begin(), v.end(), [](const P& x, const P& y){ return x.a < y.a; });\n for (auto& p : v) std::cout << p.n << p.a << " ";\n std::cout << biggest(7, 3) << "\\n";\n return 0;\n}',
 );
 await clickRun(0);
@@ -154,7 +154,7 @@ try {
 // Arbitrary-precision integers prove this is genuine CPython, not a JS shim.
 await page.locator('[data-testid="code-runner"]').first().locator(".cm-content").click();
 await page.keyboard.press("ControlOrMeta+a");
-await page.keyboard.type("import sys\nprint(2 ** 100)\nprint(sys.version.split()[0])");
+await page.keyboard.insertText("import sys\nprint(2 ** 100)\nprint(sys.version.split()[0])");
 await clickRun(0);
 try {
   await waitForOutput(0, "1267650600228229401496703205376", 180_000);
@@ -168,7 +168,7 @@ try {
 // numpy comes from the package CDN, which this sandbox blocks.
 await page.locator('[data-testid="code-runner"]').first().locator(".cm-content").click();
 await page.keyboard.press("ControlOrMeta+a");
-await page.keyboard.type("import numpy as np\nprint(np.arange(5).sum())");
+await page.keyboard.insertText("import numpy as np\nprint(np.arange(5).sum())");
 await clickRun(0);
 try {
   await waitForOutput(0, "10", 240_000);
@@ -200,7 +200,7 @@ try {
 // Editing the source must re-render without a Run click.
 await page.locator('[data-testid="code-runner"]').first().locator(".cm-content").click();
 await page.keyboard.press("ControlOrMeta+a");
-await page.keyboard.type(
+await page.keyboard.insertText(
   'export default function App() {\n const items = ["x","y"];\n return <ul>{items.map(i => <li key={i}>item {i}</li>)}</ul>;\n}',
 );
 try {
@@ -212,7 +212,7 @@ try {
 
 // A syntax error must be reported, not crash the page.
 await page.keyboard.press("ControlOrMeta+a");
-await page.keyboard.type("export default function App() { return <div>;  }");
+await page.keyboard.insertText("export default function App() { return <div>;  }");
 try {
   await page.waitForSelector("text=/Syntax error|Error while running/", { timeout: 30_000 });
   pass("a broken snippet shows an error instead of crashing");
@@ -229,7 +229,7 @@ await page.locator('[data-testid="problem-workbench"]').waitFor({ timeout: 30_00
 // Submit a correct C++ solution against the full hidden suite.
 await page.locator(".cm-content").first().click();
 await page.keyboard.press("ControlOrMeta+a");
-await page.keyboard.type(
+await page.keyboard.insertText(
   "#include <iostream>\nint main(){ long long a,b; std::cin>>a>>b; std::cout<<a+b<<\" \"<<a-b<<\" \"<<a*b<<\"\\n\"; return 0; }",
 );
 await page.getByRole("button", { name: "Submit" }).click();
@@ -249,7 +249,7 @@ try {
 // And a wrong one must be rejected.
 await page.locator(".cm-content").first().click();
 await page.keyboard.press("ControlOrMeta+a");
-await page.keyboard.type(
+await page.keyboard.insertText(
   "#include <iostream>\nint main(){ long long a,b; std::cin>>a>>b; std::cout<<a+b<<\" \"<<a+b<<\" \"<<a+b<<\"\\n\"; return 0; }",
 );
 await page.getByRole("button", { name: "Submit" }).click();

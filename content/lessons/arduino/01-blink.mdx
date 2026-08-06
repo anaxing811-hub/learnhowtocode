@@ -12,7 +12,7 @@ objectives:
 
 Press **Run**. The sketch compiles with the same clang used by the C++ track, then drives a simulated Arduino Uno below the editor.
 
-```cpp run title="Blink.ino" leds="13"
+```arduino run title="Blink.ino" leds="13"
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 }
@@ -57,7 +57,7 @@ Each pin can be an input or an output, and the chip must be told which. An **out
 
 ## delay stops everything
 
-```cpp run title="FastBlink.ino" leds="13"
+```arduino run title="FastBlink.ino" leds="13"
 void setup() {
   pinMode(13, OUTPUT);
 }

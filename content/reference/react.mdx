@@ -1,0 +1,220 @@
+---
+title: React reference
+description: Hooks, JSX rules, event handling, and the patterns that come up in every component you write.
+---
+
+## JSX rules
+
+| HTML | JSX | Why |
+| --- | --- | --- |
+| `class="x"` | `className="x"` | `class` is a reserved word |
+| `for="id"` | `htmlFor="id"` | `for` is a reserved word |
+| `onclick` | `onClick` | Props are camelCase |
+| `style="color:red"` | `style={{ color: "red" }}` | An object, camelCased keys |
+| `<br>` | `<br />` | Every element must close |
+| `<!-- c -->` | `{/* c */}` | Comments are expressions |
+
+- A component returns **one** root. Use `<>…</>` when you do not want a real
+  wrapper element.
+- `{}` embeds an **expression**, never a statement. Use `cond ? a : b` or
+  `cond && a`.
+- Lists need a stable `key`. Use an id, not the array index, whenever items can
+  be reordered, inserted or removed.
+
+## useState
+
+```jsx
+const [value, setValue] = useState(initial);
+const [value, setValue] = useState(() => expensiveInit());  // lazy: runs once
+
+setValue(next);                 // when the new value is independent
+setValue((prev) => prev + 1);   // when it depends on the current value
+```
+
+The state variable is a **snapshot** for the duration of one render. Inside a
+single handler, calling `setValue(value + 1)` three times adds one, not three.
+
+Never mutate: React compares by reference.
+
+```jsx
+setItems([...items, item]);                                    // add
+setItems(items.filter((x) => x.id !== id));                    // remove
+setItems(items.map((x) => (x.id === id ? { ...x, done: true } : x)));  // update
+setUser({ ...user, name: "Ada" });                             // change a field
+```
+
+## useEffect
+
+For synchronising with something **outside** React — a subscription, a timer, a
+network request, the document title.
+
+```jsx
+useEffect(() => {
+  const id = setInterval(tick, 1000);
+  return () => clearInterval(id);      // cleanup: runs before the next effect
+                                       // and on unmount
+}, []);                                // dependencies
+```
+
+| Dependencies | Runs |
+| --- | --- |
+| omitted | After every render |
+| `[]` | Once after mount |
+| `[a, b]` | After mount, and whenever `a` or `b` changes |
+
+<Callout type="gotcha" title="Do not use an effect to compute values">
+If a value can be derived from props or state, compute it during render:
+`const total = items.reduce(...)`. Putting it in state and syncing it with an
+effect causes an extra render and a window where the two disagree.
+</Callout>
+
+Fetching, with the two things people usually forget — cleanup and error state:
+
+```jsx
+useEffect(() => {
+  const controller = new AbortController();
+  let alive = true;
+
+  fetch(url, { signal: controller.signal })
+    .then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then((data) => alive && setData(data))
+    .catch((err) => err.name !== "AbortError" && alive && setError(err));
+
+  return () => {
+    alive = false;
+    controller.abort();
+  };
+}, [url]);
+```
+
+## The other hooks
+
+| Hook | For |
+| --- | --- |
+| `useRef(initial)` | A mutable box that survives renders without causing one. Also how you reach a DOM node: `<input ref={inputRef} />` |
+| `useMemo(fn, deps)` | Cache an expensive computation between renders |
+| `useCallback(fn, deps)` | Cache a function identity, so a memoised child does not re-render |
+| `useReducer(reducer, init)` | When several pieces of state change together |
+| `useContext(Context)` | Read a value from a provider higher up the tree |
+| `useId()` | A stable unique id for accessibility attributes |
+
+```jsx
+const inputRef = useRef(null);
+useEffect(() => inputRef.current?.focus(), []);
+
+const sorted = useMemo(() => [...items].sort(compare), [items]);
+const onSelect = useCallback((id) => setSelected(id), []);
+```
+
+<Callout type="tip" title="Do not reach for useMemo by default">
+It has its own cost, and most computations are cheaper than the bookkeeping.
+Measure before memoising. React Compiler (stable in Next.js 16) handles most of
+this automatically if you enable it.
+</Callout>
+
+### The rules of hooks
+
+1. Only call hooks at the top level — never inside a condition, loop or nested
+   function.
+2. Only call them from a component or another hook.
+
+React matches hooks to state by **call order**. A conditional hook shifts that
+order and state ends up attached to the wrong variable.
+
+## Events
+
+```jsx
+<button onClick={handleClick}>              // pass the function
+<button onClick={() => handleClick(id)}>    // wrap when you need an argument
+<button onClick={handleClick()}>            // WRONG — calls it during render
+
+function handleSubmit(event) {
+  event.preventDefault();      // stop the browser navigating away
+  event.stopPropagation();     // stop it bubbling to parent handlers
+}
+```
+
+Common handlers: `onClick`, `onChange`, `onSubmit`, `onKeyDown`, `onFocus`,
+`onBlur`, `onMouseEnter`.
+
+## Forms
+
+React prefers **controlled** inputs — the value lives in state:
+
+```jsx
+const [text, setText] = useState("");
+
+<input value={text} onChange={(e) => setText(e.target.value)} />
+<textarea value={text} onChange={(e) => setText(e.target.value)} />
+<select value={choice} onChange={(e) => setChoice(e.target.value)}>
+  <option value="a">A</option>
+</select>
+<input type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} />
+```
+
+Note `checked` (not `value`) for checkboxes, and `e.target.checked` (not
+`e.target.value`).
+
+## Props
+
+```jsx
+function Card({ title, children, variant = "default", ...rest }) {
+  return (
+    <div className={`card card-${variant}`} {...rest}>
+      <h3>{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+<Card title="Hello" onClick={fn}>
+  <p>This becomes children.</p>
+</Card>
+```
+
+Props are read-only. To change something owned by a parent, the parent passes
+down a callback — "lift state up" to the closest common ancestor.
+
+## Context
+
+For values many components need and that rarely change — theme, current user,
+locale.
+
+```jsx
+const ThemeContext = createContext("light");
+
+<ThemeContext.Provider value={theme}>
+  <App />
+</ThemeContext.Provider>
+
+const theme = useContext(ThemeContext);
+```
+
+Context is not a state manager. Every consumer re-renders when the value
+changes, so do not put fast-changing state in one.
+
+## Conditional rendering
+
+```jsx
+{isLoggedIn ? <Dashboard /> : <Login />}
+{error && <Error message={error} />}
+{items.length > 0 && <List items={items} />}   // note: `> 0`, not `items.length`
+{items.length === 0 && <Empty />}
+```
+
+`{items.length && <List />}` renders a bare `0` when the array is empty,
+because `0` is falsy but still renderable. Always compare explicitly.
+
+## Common mistakes
+
+| Symptom | Cause |
+| --- | --- |
+| "Objects are not valid as a React child" | Rendering an object. Pick a field, or `JSON.stringify` it |
+| A `0` appears from nowhere | `{count && …}` with `count === 0` |
+| Infinite re-render loop | Calling a setter during render, or an effect whose deps change every render |
+| State updates seem one step behind | Reading state right after setting it — use the updater form |
+| List items lose their state on reorder | Using the array index as `key` |
+| "Too many re-renders" | `onClick={handler()}` instead of `onClick={handler}` |

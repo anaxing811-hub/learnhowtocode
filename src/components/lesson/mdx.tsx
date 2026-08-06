@@ -9,30 +9,40 @@ import { Callout, KeyPoints } from "@/components/lesson/callout";
 import { Quiz } from "@/components/lesson/quiz";
 import { Exercise } from "@/components/lesson/exercise";
 import { CodeRunner } from "@/components/runners/code-runner";
+import type { TrackId } from "@/lib/tracks";
 
-const components = {
-  pre: MdxPre,
-  Callout,
-  KeyPoints,
-  Quiz,
-  Exercise,
-  Runner: CodeRunner,
-  a: ({ href = "", ...props }: React.ComponentProps<"a">) => {
-    const external = /^https?:/.test(href);
-    if (external) {
-      return (
-        <a href={href} target="_blank" rel="noreferrer noopener" {...props} />
-      );
-    }
-    return <Link href={href} {...props} />;
-  },
-};
+/**
+ * The component map is built per render rather than being a module constant,
+ * so the code-block component can be bound to the track it belongs to. That is
+ * what lets a ```cpp fence inside an Arduino lesson compile as a sketch.
+ */
+function buildComponents(track?: TrackId) {
+  return {
+    pre: (props: { children?: React.ReactNode }) => (
+      <MdxPre {...props} track={track} />
+    ),
+    Callout,
+    KeyPoints,
+    Quiz,
+    Exercise,
+    Runner: CodeRunner,
+    a: ({ href = "", ...props }: React.ComponentProps<"a">) => {
+      const external = /^https?:/.test(href);
+      if (external) {
+        return (
+          <a href={href} target="_blank" rel="noreferrer noopener" {...props} />
+        );
+      }
+      return <Link href={href} {...props} />;
+    },
+  };
+}
 
-export function Mdx({ source }: { source: string }) {
+export function Mdx({ source, track }: { source: string; track?: TrackId }) {
   return (
     <MDXRemote
       source={source}
-      components={components}
+      components={buildComponents(track)}
       options={{
         // next-mdx-remote v6 strips JSX *expression* attributes by default —
         // it assumes MDX may come from untrusted authors, and an expression is

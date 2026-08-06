@@ -65,7 +65,7 @@ export default async function ReferencePage({
       </div>
 
       <div className="lesson-prose mt-8">
-        <Mdx source={page.body} />
+        <Mdx source={page.body} track={track} />
       </div>
     </div>
   );

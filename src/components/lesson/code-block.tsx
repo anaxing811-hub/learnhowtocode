@@ -1,7 +1,7 @@
 import { highlightToHtml, normalizeLang } from "@/lib/highlight";
 import { CodeRunner } from "@/components/runners/code-runner";
 import { CopyButton } from "@/components/lesson/copy-button";
-import type { RunnerLang } from "@/lib/tracks";
+import type { RunnerLang, TrackId } from "@/lib/tracks";
 
 /**
  * Parses a fence's info string: ```cpp run title="Hello" stdin="3 4"
@@ -46,8 +46,19 @@ interface CodeChildProps {
  * Replaces the `<pre>` MDX emits. A fence marked `run` becomes an interactive
  * editor; everything else is highlighted server-side by Shiki so the reader
  * never downloads a syntax highlighter.
+ *
+ * `track` exists because an Arduino sketch *is* C++, so authors naturally
+ * write ```cpp. Without this, such a fence would compile without the Arduino
+ * API and fail on `LED_BUILTIN`. Inside the arduino track, a runnable C++
+ * fence means a sketch.
  */
-export async function MdxPre({ children }: { children?: React.ReactNode }) {
+export async function MdxPre({
+  children,
+  track,
+}: {
+  children?: React.ReactNode;
+  track?: TrackId;
+}) {
   const child = children as
     | { props?: CodeChildProps; type?: unknown }
     | undefined;
@@ -58,7 +69,8 @@ export async function MdxPre({ children }: { children?: React.ReactNode }) {
   const source = (props.raw ?? "").replace(/\n$/, "");
   const { flags, values } = parseMeta(props.meta ?? "");
 
-  const runnerLang = RUNNABLE[lang.toLowerCase()];
+  let runnerLang = RUNNABLE[lang.toLowerCase()];
+  if (track === "arduino" && runnerLang === "cpp") runnerLang = "arduino";
 
   if (flags.has("run") && runnerLang) {
     return (

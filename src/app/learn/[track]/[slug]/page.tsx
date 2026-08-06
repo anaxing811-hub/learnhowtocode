@@ -96,7 +96,7 @@ export default async function LessonPage({
         )}
 
         <div className="lesson-prose mt-8">
-          <Mdx source={lesson.body} />
+          <Mdx source={lesson.body} track={track} />
         </div>
 
         <CompleteButton track={track} slug={slug} nextHref={next ? `/learn/${track}/${next.slug}` : null} />

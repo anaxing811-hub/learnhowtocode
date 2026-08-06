@@ -57,10 +57,14 @@ async function detectVersion(): Promise<string | null> {
 function ensureWorker() {
   if (worker) return worker;
 
-  worker = new Worker(
-    new URL("../../workers/python.worker.ts", import.meta.url),
-    { type: "module", name: "pyodide" },
-  );
+  // The worker is a static file in public/, not a bundled module. Turbopack
+  // rewrites `new Worker(new URL(...))` into its own wrapper, which then fails
+  // with "Classic web workers are not supported" once Pyodide loads inside it.
+  // Serving it verbatim keeps the bundler out of the way entirely.
+  worker = new Worker("/workers/python.js", {
+    type: "module",
+    name: "pyodide",
+  });
 
   worker.onmessage = (event: MessageEvent<WorkerOutbound>) => {
     const msg = event.data;
