@@ -96,22 +96,62 @@ self.onmessage = async (event) => {
       stdin: () => (lineIndex < lines.length ? lines[lineIndex++] : null),
     });
 
+    // Package loading reaches out to the wheel host. If that host is
+    // unreachable — offline, a CDN outage, a restrictive network — the fetch
+    // can hang rather than fail, which would leave the Run button spinning
+    // forever with no explanation. Bound it and report what happened.
+    const withTimeout = (promise, ms, what) =>
+      Promise.race([
+        promise,
+        new Promise((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `Timed out after ${Math.round(ms / 1000)}s while ${what}. ` +
+                    `The Python package host may be unreachable from this network.`,
+                ),
+              ),
+            ms,
+          ),
+        ),
+      ]);
+
+    const PACKAGE_TIMEOUT_MS = 90_000;
+
     if (msg.packages && msg.packages.length) {
       stream("status", `Loading ${msg.packages.join(", ")}…`);
-      await py.loadPackage(msg.packages);
+      await withTimeout(
+        py.loadPackage(msg.packages),
+        PACKAGE_TIMEOUT_MS,
+        `loading ${msg.packages.join(", ")}`,
+      );
     }
 
     // Pull in anything the code imports that Pyodide ships a wheel for. A
     // missing wheel should surface as an ordinary ImportError from the run
-    // below, not as a boot failure.
+    // below, not as a boot failure — but a *hang* must not be swallowed, so
+    // a timeout here is reported and stops the run.
     try {
-      stream("status", "Checking imports…");
-      await py.loadPackagesFromImports(msg.code);
-    } catch (err) {
-      stream(
-        "status",
-        `Could not preload packages: ${err && err.message ? err.message : err}`,
+      stream("status", "Resolving imports…");
+      await withTimeout(
+        py.loadPackagesFromImports(msg.code),
+        PACKAGE_TIMEOUT_MS,
+        "downloading packages",
       );
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      if (message.startsWith("Timed out")) {
+        post({
+          type: "done",
+          id: msg.id,
+          ok: false,
+          error: message,
+          durationMs: Math.round(performance.now() - started),
+        });
+        return;
+      }
+      stream("status", `Could not preload packages: ${message}`);
     }
 
     try {

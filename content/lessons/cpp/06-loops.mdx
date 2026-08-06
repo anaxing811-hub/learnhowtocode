@@ -1,0 +1,221 @@
+---
+title: Loops
+description: while, for, and the range-based for — plus the off-by-one that catches everyone.
+module: Control flow
+order: 6
+minutes: 10
+objectives:
+  - Write all three kinds of loop
+  - Choose the right loop for a problem
+  - Spot an off-by-one error by reasoning about the boundary
+---
+
+## while
+
+Repeat while a condition holds. The condition is checked *before* each pass, so
+a `while` loop may run zero times.
+
+```cpp run title="while.cpp"
+#include <iostream>
+
+int main() {
+    int countdown = 5;
+    while (countdown > 0) {
+        std::cout << countdown << " ";
+        countdown--;
+    }
+    std::cout << "liftoff\n";
+    return 0;
+}
+```
+
+Forget the `countdown--` and the condition never changes: an infinite loop. In
+this page that hits a time limit and stops; in a terminal you would press
+Ctrl-C.
+
+## for
+
+When you know the shape of the repetition up front, `for` puts the three parts
+on one line — initialise, test, advance.
+
+```cpp run title="for.cpp"
+#include <iostream>
+
+int main() {
+    for (int i = 0; i < 5; ++i) {
+        std::cout << i << " ";
+    }
+    std::cout << "\n";
+
+    for (int i = 10; i > 0; i -= 2) {
+        std::cout << i << " ";
+    }
+    std::cout << "\n";
+    return 0;
+}
+```
+
+`i` is scoped to the loop — it does not exist afterwards, which is exactly what
+you want.
+
+<Callout type="tip" title="Why ++i rather than i++">
+For an `int` they are identical, and any compiler produces the same code. The
+habit matters for iterators, where `i++` must copy the old value before
+incrementing and `++i` need not. Writing `++i` everywhere costs nothing and is
+occasionally free performance.
+</Callout>
+
+## The off-by-one
+
+This is the single most common loop bug, and it has a reliable cure.
+
+```cpp run title="off-by-one.cpp"
+#include <iostream>
+
+int main() {
+    int values[5] = {10, 20, 30, 40, 50};
+
+    // Correct: i goes 0,1,2,3,4 — five passes.
+    for (int i = 0; i < 5; ++i) std::cout << values[i] << " ";
+    std::cout << "\n";
+
+    // Wrong: i reaches 5, and values[5] does not exist.
+    for (int i = 0; i <= 5; ++i) std::cout << values[i] << " ";
+    std::cout << "\n";
+    return 0;
+}
+```
+
+Run it. The second loop prints a sixth number — whatever happened to sit in
+memory just after the array. Nothing crashes and nothing warns you. That is
+undefined behaviour: C++ trusts you, and reading out of bounds is the price.
+
+The cure is to say the boundary out loud. *"i starts at 0 and the array has 5
+elements, so the last valid index is 4, so the test is `i < 5`."* An index loop
+over `n` items is `i < n`, essentially always.
+
+## Range-based for
+
+When you just want each element, say so:
+
+```cpp run title="range-for.cpp"
+#include <iostream>
+#include <vector>
+#include <string>
+
+int main() {
+    std::vector<std::string> names = {"Ada", "Alan", "Grace"};
+
+    for (const std::string& name : names) {     // no copy, cannot modify
+        std::cout << name << " ";
+    }
+    std::cout << "\n";
+
+    std::vector<int> numbers = {1, 2, 3};
+    for (int& n : numbers) n *= 10;             // reference: modifies in place
+
+    for (int n : numbers) std::cout << n << " ";
+    std::cout << "\n";
+    return 0;
+}
+```
+
+Three forms, three meanings:
+
+| Form | Meaning |
+| --- | --- |
+| `for (T x : c)` | A copy of each element. Fine for `int`, wasteful for a big object |
+| `for (T& x : c)` | A reference — modifying `x` modifies the container |
+| `for (const T& x : c)` | A reference you promise not to modify. The default for anything non-trivial |
+
+There is no index, so there is no off-by-one. Prefer this loop whenever you do
+not need the position.
+
+## break and continue
+
+```cpp run title="break-continue.cpp"
+#include <iostream>
+
+int main() {
+    for (int i = 1; i <= 20; ++i) {
+        if (i % 3 != 0) continue;    // skip the rest of this pass
+        if (i > 12) break;           // leave the loop entirely
+        std::cout << i << " ";
+    }
+    std::cout << "\n";
+    return 0;
+}
+```
+
+`continue` jumps to the next pass; `break` exits. In a `for` loop, `continue`
+still runs the advance step — a `while` loop with `continue` before the
+increment is a classic accidental infinite loop.
+
+## Nested loops
+
+```cpp run title="nested.cpp"
+#include <iostream>
+#include <iomanip>
+
+int main() {
+    for (int row = 1; row <= 5; ++row) {
+        for (int col = 1; col <= 5; ++col) {
+            std::cout << std::setw(4) << row * col;
+        }
+        std::cout << "\n";
+    }
+    return 0;
+}
+```
+
+The inner loop runs completely for each pass of the outer one — 25 passes
+total. Note that `break` only leaves the *innermost* loop.
+
+`std::setw(4)` from `<iomanip>` pads the next value to four columns, which is
+how you line a table up.
+
+<Quiz
+  question="How many times does the body run?  `for (int i = 1; i <= 10; i += 3)`"
+  options={[
+    { text: "4 — i takes 1, 4, 7, 10", correct: true, explain: "After 10 the next value is 13, which fails i <= 10. Walking the first two and last two values by hand is the reliable way to check." },
+    { text: "3 — i takes 1, 4, 7", explain: "10 still satisfies i <= 10, so there is a fourth pass." },
+    { text: "10", explain: "That would be a step of 1." },
+    { text: "11", explain: "The step is 3, and the test is <=, not <." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="cpp"
+  starter={`#include <iostream>
+
+int main() {
+    // Print the FizzBuzz sequence for 1..20:
+    // multiples of 3 -> "Fizz", of 5 -> "Buzz", of both -> "FizzBuzz",
+    // anything else -> the number. One per line.
+    return 0;
+}`}
+  solution={`#include <iostream>
+
+int main() {
+    for (int i = 1; i <= 20; ++i) {
+        if (i % 15 == 0)      std::cout << "FizzBuzz\\n";
+        else if (i % 3 == 0)  std::cout << "Fizz\\n";
+        else if (i % 5 == 0)  std::cout << "Buzz\\n";
+        else                  std::cout << i << "\\n";
+    }
+    return 0;
+}`}
+>
+Test the "both" case first. Checking `i % 3` before `i % 15` means 15 prints
+"Fizz" and never reaches the combined case — the order of your conditions is
+the whole puzzle.
+</Exercise>
+
+<KeyPoints>
+- `while` checks before each pass and may run zero times.
+- An index loop over `n` items is `i < n`. Say the boundary out loud to check it.
+- Reading past the end of an array is undefined behaviour: no crash, no warning, wrong answer.
+- Prefer `for (const auto& x : container)` when you do not need the index.
+- `break` leaves only the innermost loop.
+</KeyPoints>

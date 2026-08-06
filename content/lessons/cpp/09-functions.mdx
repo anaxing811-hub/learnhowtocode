@@ -1,0 +1,256 @@
+---
+title: Functions
+description: Declarations versus definitions, how arguments are passed, and why the distinction decides whether your changes stick.
+module: Functions
+order: 9
+minutes: 11
+objectives:
+  - Write functions with parameters and return values
+  - Choose between passing by value, by reference and by const reference
+  - Explain why a function must be declared before it is used
+---
+
+```cpp run title="functions.cpp"
+#include <iostream>
+
+int square(int n) {
+    return n * n;
+}
+
+int main() {
+    std::cout << square(7) << "\n";
+    return 0;
+}
+```
+
+Return type, name, parameter list, body. A function that returns nothing has
+return type `void`.
+
+## Order matters
+
+C++ reads your file top to bottom, and will not use a name it has not seen yet.
+
+```cpp run title="order.cpp"
+#include <iostream>
+
+int main() {
+    std::cout << triple(5) << "\n";     // error: triple has not been declared
+    return 0;
+}
+
+int triple(int n) { return n * 3; }
+```
+
+Two ways to fix it. Move the definition above `main`, or **declare** it first —
+give the compiler the signature and promise the body arrives later:
+
+```cpp run title="prototype.cpp"
+#include <iostream>
+
+int triple(int n);          // declaration (prototype): no body, ends in ;
+
+int main() {
+    std::cout << triple(5) << "\n";
+    return 0;
+}
+
+int triple(int n) {         // definition: the body
+    return n * 3;
+}
+```
+
+This split is what header files are: declarations in the `.h`, definitions in
+the `.cpp`. It is also why a missing body is a *linker* error rather than a
+compiler error — the compiler was satisfied by the promise.
+
+## How arguments are passed
+
+This is the part that decides whether your function can change the caller's
+data, and it is the most important thing in this lesson.
+
+```cpp run title="passing.cpp"
+#include <iostream>
+
+void byValue(int n)   { n = 99; }     // n is a copy
+void byReference(int& n) { n = 99; }  // n is another name for the caller's variable
+
+int main() {
+    int a = 1;
+    byValue(a);
+    std::cout << "after byValue:     " << a << "\n";
+
+    int b = 1;
+    byReference(b);
+    std::cout << "after byReference: " << b << "\n";
+    return 0;
+}
+```
+
+`byValue` receives a copy and modifies the copy; the original is untouched.
+`byReference` receives the variable itself.
+
+The third form is the one you will write most:
+
+```cpp run title="const-ref.cpp"
+#include <iostream>
+#include <vector>
+#include <string>
+
+// No copy, and the compiler refuses to let us modify it.
+void describe(const std::vector<std::string>& names) {
+    std::cout << names.size() << " names, first is " << names.front() << "\n";
+    // names.push_back("x");   // would not compile — and that is the point
+}
+
+int main() {
+    std::vector<std::string> names{"Ada", "Grace", "Alan"};
+    describe(names);
+    return 0;
+}
+```
+
+| Form | Copies? | Can modify? | Use for |
+| --- | --- | --- | --- |
+| `T x` | yes | no (only the copy) | small types: `int`, `double`, `char` |
+| `T& x` | no | yes | when the function's job is to modify it |
+| `const T& x` | no | no | anything large you only need to read |
+
+The rule of thumb: pass `int` and `double` by value, everything else by
+`const&` unless you intend to modify it.
+
+## Returning several values
+
+A function returns one value, but that value can be a bundle:
+
+```cpp run title="multiple.cpp"
+#include <iostream>
+#include <utility>
+#include <vector>
+#include <algorithm>
+
+std::pair<int, int> minMax(const std::vector<int>& v) {
+    auto result = std::minmax_element(v.begin(), v.end());
+    return {*result.first, *result.second};
+}
+
+int main() {
+    std::vector<int> data{4, 8, 15, 16, 23, 42};
+    auto [low, high] = minMax(data);          // structured binding, C++17
+    std::cout << low << " " << high << "\n";
+    return 0;
+}
+```
+
+The alternative — an "out parameter" passed by reference — is common in older
+code:
+
+```cpp
+void minMax(const std::vector<int>& v, int& low, int& high);
+```
+
+It works, but the caller cannot tell from the call site which arguments get
+modified. Returning a pair or a small struct is clearer.
+
+## Default arguments and overloading
+
+```cpp run title="defaults.cpp"
+#include <iostream>
+#include <string>
+
+std::string repeat(const std::string& text, int times = 2, char sep = ' ') {
+    std::string out;
+    for (int i = 0; i < times; ++i) {
+        if (i > 0) out += sep;
+        out += text;
+    }
+    return out;
+}
+
+// Overload: same name, different parameter types.
+int add(int a, int b)          { return a + b; }
+double add(double a, double b) { return a + b; }
+
+int main() {
+    std::cout << repeat("hi") << "\n";
+    std::cout << repeat("hi", 3) << "\n";
+    std::cout << repeat("hi", 3, '-') << "\n";
+
+    std::cout << add(1, 2) << " " << add(1.5, 2.5) << "\n";
+    return 0;
+}
+```
+
+Defaults must be the trailing parameters — you cannot skip one in the middle.
+Overloads are resolved by argument *types*; two functions differing only in
+return type are not valid overloads.
+
+<Callout type="gotcha" title="Declare defaults once">
+Put a default argument in the declaration (usually the header), not in the
+definition too. Repeating it in both is an error.
+</Callout>
+
+<Quiz
+  question="A function takes `std::vector<int> v` by value and calls `v.push_back(1)`. What does the caller see?"
+  options={[
+    { text: "Nothing — the function modified its own copy", correct: true, explain: "Pass by value copies the entire vector. To affect the caller's vector, take `std::vector<int>&`." },
+    { text: "The caller's vector gains an element", explain: "That would need a reference parameter." },
+    { text: "A compile error — vectors cannot be passed by value", explain: "They can; it is just usually a wasteful copy." },
+    { text: "Undefined behaviour", explain: "It is perfectly well defined, just not what was intended." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="cpp"
+  starter={`#include <iostream>
+#include <vector>
+
+// Write two functions:
+//   1. bool isPrime(int n)
+//   2. void keepPrimes(std::vector<int>& v)  — removes non-primes in place
+// Then print what remains.
+
+int main() {
+    std::vector<int> numbers{2, 4, 7, 9, 11, 15, 17, 20, 23};
+    // keepPrimes(numbers);
+    for (int n : numbers) std::cout << n << " ";
+    std::cout << "\\n";
+    return 0;
+}`}
+  solution={`#include <iostream>
+#include <vector>
+#include <algorithm>
+
+bool isPrime(int n) {
+    if (n < 2) return false;
+    for (int d = 2; d * d <= n; ++d) {
+        if (n % d == 0) return false;
+    }
+    return true;
+}
+
+void keepPrimes(std::vector<int>& v) {
+    v.erase(
+        std::remove_if(v.begin(), v.end(), [](int n) { return !isPrime(n); }),
+        v.end());
+}
+
+int main() {
+    std::vector<int> numbers{2, 4, 7, 9, 11, 15, 17, 20, 23};
+    keepPrimes(numbers);
+    for (int n : numbers) std::cout << n << " ";
+    std::cout << "\\n";
+    return 0;
+}`}
+>
+`keepPrimes` must take a reference, or the caller will not see the change.
+`d * d <= n` stops the loop at the square root — checking further is wasted
+work, because a factor above the square root implies one below it.
+</Exercise>
+
+<KeyPoints>
+- A function must be declared before it is used; a prototype is enough.
+- Pass by value copies; pass by reference does not; `const&` does not copy and cannot modify.
+- Return a `std::pair` or a small struct rather than using out parameters.
+- Default arguments must be trailing, and are declared exactly once.
+</KeyPoints>

@@ -1,0 +1,200 @@
+---
+title: Plotting with Matplotlib
+description: Turn arrays into pictures — and learn the one API decision that makes every later plot easier.
+module: Scientific Python
+order: 13
+minutes: 11
+objectives:
+  - Draw line, scatter, bar and histogram plots
+  - Use the figure/axes API rather than the global one
+  - Label a plot so it can be read without you standing next to it
+---
+
+<Callout type="note" title="This lesson downloads Matplotlib">
+Figures are rendered to PNG inside the browser and shown below the editor.
+</Callout>
+
+```python run title="first-plot.py"
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(0, 2 * np.pi, 200)
+
+fig, ax = plt.subplots(figsize=(7, 3.5))
+ax.plot(x, np.sin(x), label="sin")
+ax.plot(x, np.cos(x), label="cos", linestyle="--")
+
+ax.set_xlabel("angle (radians)")
+ax.set_ylabel("value")
+ax.set_title("Two waves")
+ax.legend()
+ax.grid(alpha=0.3)
+plt.tight_layout()
+```
+
+## Two APIs, and why to pick one
+
+Matplotlib has a global "pyplot" interface — `plt.plot()`, `plt.title()` — that
+draws onto whichever figure is currently active. It is fine for one throwaway
+chart and becomes confusing the moment you have two.
+
+The other is the object interface: `fig, ax = plt.subplots()` hands you the
+figure and the axes, and you call methods on them. Everything is explicit, so
+nothing depends on hidden state.
+
+Use the second one from the start. The only cost is one extra line, and the
+method names differ predictably: `plt.xlabel()` becomes `ax.set_xlabel()`.
+
+```python run title="subplots.py"
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(seed=3)
+data = rng.normal(size=500)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.5))
+
+axes[0].hist(data, bins=30, color="#0f766e", alpha=0.8)
+axes[0].set_title("Distribution")
+axes[0].set_xlabel("value")
+
+axes[1].plot(np.cumsum(data), color="#7c3aed")
+axes[1].set_title("Cumulative sum")
+axes[1].set_xlabel("step")
+
+plt.tight_layout()
+```
+
+With the global API, drawing into the second panel means remembering which one
+is "current". With axes objects, you simply name the one you mean.
+
+## The four plots you will use most
+
+```python run title="plot-types.py"
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(seed=1)
+fig, axes = plt.subplots(2, 2, figsize=(9, 6))
+
+# Line — a value that changes along an ordered axis
+t = np.arange(50)
+axes[0, 0].plot(t, np.cumsum(rng.normal(size=50)))
+axes[0, 0].set_title("line: a series over time")
+
+# Scatter — the relationship between two variables
+x = rng.normal(size=120)
+y = 0.7 * x + rng.normal(scale=0.5, size=120)
+axes[0, 1].scatter(x, y, s=14, alpha=0.6)
+axes[0, 1].set_title("scatter: x against y")
+
+# Bar — a value per category
+categories = ["north", "south", "east", "west"]
+axes[1, 0].bar(categories, [120, 340, 560, 95], color="#0f766e")
+axes[1, 0].set_title("bar: value per category")
+
+# Histogram — the shape of one variable
+axes[1, 1].hist(rng.normal(size=800), bins=25, color="#7c3aed", alpha=0.8)
+axes[1, 1].set_title("histogram: distribution of one variable")
+
+plt.tight_layout()
+```
+
+Choosing between them is a question about your data, not about aesthetics:
+
+| You want to show | Use |
+| --- | --- |
+| How something changes across an ordered axis | line |
+| Whether two variables are related | scatter |
+| A value compared across categories | bar |
+| The shape and spread of one variable | histogram |
+| The same distribution across several groups | box plot |
+
+## Labelling
+
+An unlabelled plot is a picture; a labelled one is evidence. Every chart needs
+axis labels with units, and a title stating what it shows.
+
+```python run title="labelled.py"
+import numpy as np
+import matplotlib.pyplot as plt
+
+months = np.arange(1, 13)
+rainfall = np.array([78, 62, 55, 48, 52, 61, 74, 80, 71, 88, 92, 86])
+
+fig, ax = plt.subplots(figsize=(7.5, 3.6))
+bars = ax.bar(months, rainfall, color="#0f766e", alpha=0.85)
+
+wettest = rainfall.argmax()
+bars[wettest].set_color("#dc2626")
+
+ax.set_xticks(months)
+ax.set_xticklabels(["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"])
+ax.set_xlabel("month")
+ax.set_ylabel("rainfall (mm)")
+ax.set_title("Monthly rainfall — November is the wettest")
+ax.spines[["top", "right"]].set_visible(False)
+plt.tight_layout()
+```
+
+Two habits worth copying. Colouring the one bar you are talking about does more
+than a legend ever will. And a title that states the *finding* — "November is
+the wettest" — beats one that restates the axes.
+
+<Quiz
+  question="Why prefer `fig, ax = plt.subplots()` over calling `plt.plot()` directly?"
+  options={[
+    { text: "It names the figure and axes explicitly, so nothing depends on which figure is 'current'", correct: true, explain: "The global API draws onto hidden state. With axes objects you say which panel you mean, which is the difference between a script that works and one that works by accident." },
+    { text: "It renders faster", explain: "The drawing work is identical." },
+    { text: "It is the only way to get multiple panels", explain: "plt.subplot() can also make panels; the advantage is explicitness, not capability." },
+    { text: "plt.plot() is deprecated", explain: "It is not deprecated, just harder to reason about at scale." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(seed=11)
+hours = rng.uniform(0, 10, size=80)
+scores = 55 + 4 * hours + rng.normal(scale=6, size=80)
+
+# 1. Scatter hours against scores.
+# 2. Overlay a straight-line fit (np.polyfit with degree 1 gives you
+#    slope and intercept).
+# 3. Label both axes and give it a title that states what you found.
+`}
+  solution={`import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(seed=11)
+hours = rng.uniform(0, 10, size=80)
+scores = 55 + 4 * hours + rng.normal(scale=6, size=80)
+
+slope, intercept = np.polyfit(hours, scores, 1)
+line_x = np.array([hours.min(), hours.max()])
+
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.scatter(hours, scores, s=18, alpha=0.6, label="students")
+ax.plot(line_x, slope * line_x + intercept, color="#dc2626",
+        label=f"fit: {slope:.1f} points per hour")
+
+ax.set_xlabel("hours studied")
+ax.set_ylabel("exam score")
+ax.set_title(f"Each extra hour is worth about {slope:.1f} points")
+ax.legend()
+ax.spines[["top", "right"]].set_visible(False)
+plt.tight_layout()`}
+>
+`np.polyfit(x, y, 1)` returns `[slope, intercept]`. Plotting the line only
+needs its two endpoints.
+</Exercise>
+
+<KeyPoints>
+- Use `fig, ax = plt.subplots()`; call methods on `ax` rather than on `plt`.
+- `plt.xlabel` → `ax.set_xlabel`: the object API names things with `set_`.
+- Pick the plot type from what the data is, not from what looks nice.
+- Label the axes with units, and let the title state the finding.
+</KeyPoints>

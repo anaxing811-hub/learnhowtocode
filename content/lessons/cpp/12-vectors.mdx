@@ -1,0 +1,247 @@
+---
+title: Vectors
+description: The container you should reach for by default, and why raw arrays are almost always the wrong choice.
+module: Collections
+order: 12
+minutes: 11
+objectives:
+  - Create, grow and iterate a std::vector
+  - Explain why a vector can resize and an array cannot
+  - Pass vectors to functions without copying them
+---
+
+A raw array has a size fixed at compile time. A `std::vector` grows.
+
+```cpp run title="vector.cpp"
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> scores;          // empty
+
+    scores.push_back(88);
+    scores.push_back(92);
+    scores.push_back(79);
+
+    std::cout << "count: " << scores.size() << "\n";
+    std::cout << "first: " << scores[0] << ", last: " << scores.back() << "\n";
+
+    for (int s : scores) std::cout << s << " ";
+    std::cout << "\n";
+    return 0;
+}
+```
+
+The `<int>` is a **template argument** — it says what the vector holds. A
+`std::vector<int>` and a `std::vector<std::string>` are genuinely different
+types, generated from the same template.
+
+## Creating them
+
+```cpp run title="creating.cpp"
+#include <iostream>
+#include <vector>
+#include <string>
+
+int main() {
+    std::vector<int> a;                    // empty
+    std::vector<int> b(5);                 // five zeroes
+    std::vector<int> c(5, 7);              // five sevens
+    std::vector<int> d{1, 2, 3};           // exactly these three
+    std::vector<std::string> e{"x", "y"};
+
+    std::cout << a.size() << " " << b.size() << " " << c[0] << " "
+              << d[2] << " " << e[1] << "\n";
+    return 0;
+}
+```
+
+<Callout type="gotcha" title="Parentheses and braces mean different things">
+`std::vector<int> v(5, 7)` gives you five sevens. `std::vector<int> v{5, 7}`
+gives you two elements: 5 and 7. The braces are an initialiser list and always
+win when one could apply.
+</Callout>
+
+## The methods you will actually use
+
+```cpp run title="methods.cpp"
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> v{4, 8, 15, 16, 23, 42};
+
+    std::cout << "size:  " << v.size()  << "\n";
+    std::cout << "empty: " << v.empty() << "\n";
+    std::cout << "front: " << v.front() << "  back: " << v.back() << "\n";
+
+    v.push_back(99);
+    v.pop_back();                       // removes the last, returns nothing
+    v.insert(v.begin() + 2, 100);       // insert before index 2
+    v.erase(v.begin());                 // remove the first
+
+    for (int x : v) std::cout << x << " ";
+    std::cout << "\n";
+
+    v.clear();
+    std::cout << "after clear: " << v.size() << "\n";
+    return 0;
+}
+```
+
+Note that `pop_back` returns nothing. If you want the value, read `back()`
+first and then pop.
+
+## Bounds are not checked
+
+```cpp run title="bounds.cpp"
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> v{1, 2, 3};
+
+    std::cout << v[10] << "\n";     // undefined behaviour: no check at all
+    std::cout << "still running\n";
+    return 0;
+}
+```
+
+`operator[]` does not check. `at()` does, and throws `std::out_of_range`
+instead — which at least fails loudly. Use `[]` in a loop you have already
+reasoned about, and `at()` when the index came from somewhere you do not
+control.
+
+## Passing to functions
+
+This matters more than it looks.
+
+```cpp run title="passing.cpp"
+#include <iostream>
+#include <vector>
+
+// Copies the entire vector on every call.
+int sumByValue(std::vector<int> v) {
+    int total = 0;
+    for (int x : v) total += x;
+    return total;
+}
+
+// No copy, and the compiler enforces that we do not modify it.
+int sumByConstRef(const std::vector<int>& v) {
+    int total = 0;
+    for (int x : v) total += x;
+    return total;
+}
+
+// No copy, and we intend to modify it.
+void doubleAll(std::vector<int>& v) {
+    for (int& x : v) x *= 2;
+}
+
+int main() {
+    std::vector<int> data{1, 2, 3, 4};
+
+    std::cout << sumByValue(data)    << "\n";
+    std::cout << sumByConstRef(data) << "\n";
+
+    doubleAll(data);
+    for (int x : data) std::cout << x << " ";
+    std::cout << "\n";
+    return 0;
+}
+```
+
+For four integers the copy is irrelevant. For a vector of a million elements
+inside a loop, it is the difference between a fast program and a slow one.
+**The default for a container parameter is `const T&`.**
+
+## Why growing is cheap on average
+
+A vector keeps a contiguous block of memory with some spare capacity. When it
+fills up, it allocates a bigger block (typically double) and moves everything
+across.
+
+```cpp run title="capacity.cpp"
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> v;
+    std::size_t lastCapacity = 0;
+
+    for (int i = 0; i < 40; ++i) {
+        v.push_back(i);
+        if (v.capacity() != lastCapacity) {
+            std::cout << "size " << v.size()
+                      << " -> capacity " << v.capacity() << "\n";
+            lastCapacity = v.capacity();
+        }
+    }
+    return 0;
+}
+```
+
+Capacity roughly doubles, so `n` pushes cost O(n) total rather than O(n²). If
+you know the final size in advance, `v.reserve(n)` allocates once and skips all
+the copying.
+
+<Quiz
+  question="Why prefer `const std::vector<int>&` over `std::vector<int>` for a parameter?"
+  options={[
+    { text: "It avoids copying the whole container, and the compiler stops you modifying it", correct: true, explain: "Passing by value duplicates every element. The reference passes an address, and const documents and enforces the intent." },
+    { text: "It makes the vector immutable everywhere in the program", explain: "Only through that reference. The owner can still change it." },
+    { text: "It is required — vectors cannot be passed by value", explain: "They can. It is just usually wasteful." },
+    { text: "It allows the function to resize the vector", explain: "The opposite: const prevents that. Drop const if you need to modify it." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="cpp"
+  stdin="6\n5 3 9 1 7 3\n"
+  starter={`#include <iostream>
+#include <vector>
+
+int main() {
+    int n;
+    std::cin >> n;
+    std::vector<int> values(n);
+    for (int i = 0; i < n; ++i) std::cin >> values[i];
+
+    // Print, on one line: the largest value, the smallest, and the average
+    // to two decimal places.
+    return 0;
+}`}
+  solution={`#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <iomanip>
+
+int main() {
+    int n;
+    std::cin >> n;
+    std::vector<int> values(n);
+    for (int i = 0; i < n; ++i) std::cin >> values[i];
+
+    int largest  = *std::max_element(values.begin(), values.end());
+    int smallest = *std::min_element(values.begin(), values.end());
+    double mean  = std::accumulate(values.begin(), values.end(), 0.0) / n;
+
+    std::cout << largest << " " << smallest << " "
+              << std::fixed << std::setprecision(2) << mean << "\\n";
+    return 0;
+}`}
+>
+`std::max_element` returns an *iterator*, so dereference it with `*` to get the
+value. Passing `0.0` rather than `0` to `accumulate` is what makes the division
+floating-point.
+</Exercise>
+
+<KeyPoints>
+- `std::vector` is the default container; raw arrays are for when you have a specific reason.
+- `[]` is unchecked, `at()` throws — pick deliberately.
+- Pass containers as `const T&` unless you mean to modify them.
+- Capacity grows geometrically, so `push_back` is amortised O(1). `reserve` when you know the size.
+</KeyPoints>
