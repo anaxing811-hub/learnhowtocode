@@ -1,0 +1,134 @@
+---
+title: Variables and types
+description: Why C++ makes you announce the type of every value, and what the core types actually hold.
+module: First steps
+order: 3
+minutes: 10
+objectives:
+  - Declare variables of the fundamental types
+  - Predict what integer division does
+  - Explain why `int` has a maximum value
+---
+
+A variable is a named box in memory. In C++ you must say what *kind* of thing goes in the box before you use it, and that never changes afterwards. This is called **static typing**.
+
+```cpp run title="types.cpp"
+#include <iostream>
+
+int main() {
+    int    apples   = 5;          // whole number
+    double price    = 1.25;       // number with a fractional part
+    char   grade    = 'A';        // exactly one character, single quotes
+    bool   ripe     = true;       // true or false
+
+    std::cout << apples << " apples at " << price << " each\n";
+    std::cout << "Grade " << grade << ", ripe: " << ripe << "\n";
+    return 0;
+}
+```
+
+Notice `ripe` printed as `1`, not `true`. A `bool` is really a number underneath: `false` is 0 and `true` is 1.
+
+## The types you will actually use
+
+| Type | Holds | Typical size |
+| --- | --- | --- |
+| `int` | whole numbers, positive or negative | 4 bytes |
+| `long long` | much bigger whole numbers | 8 bytes |
+| `double` | numbers with decimals | 8 bytes |
+| `char` | a single character | 1 byte |
+| `bool` | `true` or `false` | 1 byte |
+| `std::string` | text of any length | varies |
+
+## Integers have edges
+
+An `int` is 32 bits, which means it can hold roughly −2.1 billion to +2.1 billion. Go past the top and it wraps around to the bottom — silently.
+
+```cpp run title="overflow.cpp"
+#include <iostream>
+#include <limits>
+
+int main() {
+    int big = std::numeric_limits<int>::max();
+    std::cout << "largest int: " << big << "\n";
+    std::cout << "one more:    " << big + 1 << "\n";
+    return 0;
+}
+```
+
+<Callout type="gotcha" title="This is a real source of bugs">
+If you are multiplying numbers that might get large — say counting pairs in a list of 100,000 items — use `long long`. The moment your intermediate result passes 2.1 billion, `int` gives you a wrong answer rather than an error.
+</Callout>
+
+## Integer division truncates
+
+This surprises everyone once:
+
+```cpp run title="division.cpp"
+#include <iostream>
+
+int main() {
+    std::cout << 7 / 2   << "\n";     // 3, not 3.5
+    std::cout << 7 % 2   << "\n";     // 1  — the remainder
+    std::cout << 7.0 / 2 << "\n";     // 3.5
+    return 0;
+}
+```
+
+`7 / 2` is 3 because both operands are `int`, so C++ does *integer* division and throws away the fraction. Make either side a `double` — writing `7.0` is enough — and you get real division. The `%` operator gives the remainder, and it is enormously useful: `n % 2 == 0` tests for even.
+
+## `auto`, when the type is obvious
+
+```cpp run title="auto.cpp"
+#include <iostream>
+#include <string>
+
+int main() {
+    auto count = 42;                    // int
+    auto ratio = 0.5;                   // double
+    auto name  = std::string("Ada");    // std::string
+
+    std::cout << name << " " << count << " " << ratio << "\n";
+    return 0;
+}
+```
+
+`auto` does not mean "any type" — the variable still has exactly one fixed type, the compiler just works it out from the initialiser. It is for when spelling the type out adds nothing.
+
+<Quiz
+  question="What does this print?  `int a = 9; double b = a / 2;`"
+  options={[
+    { text: "4.5", explain: "Tempting, but the division happens before the assignment, and it happens between two ints." },
+    { text: "4", correct: true, explain: "9 / 2 is integer division giving 4. Only then is 4 converted to a double. Write `a / 2.0` to get 4.5." },
+    { text: "4.0 — same as 4.5 rounded", explain: "It prints 4, and nothing was rounded: the fractional part was discarded, not rounded." },
+    { text: "A compile error", explain: "It compiles fine. That is what makes it a trap." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="cpp"
+  starter={`#include <iostream>
+
+int main() {
+    int totalMinutes = 197;
+    // Print "3 h 17 m" using / and %
+    return 0;
+}`}
+  solution={`#include <iostream>
+
+int main() {
+    int totalMinutes = 197;
+    std::cout << totalMinutes / 60 << " h " << totalMinutes % 60 << " m\\n";
+    return 0;
+}`}
+>
+Convert 197 minutes into hours and minutes. Integer division gives you one; `%` gives you the other.
+</Exercise>
+
+<KeyPoints>
+- Every variable has one fixed type, decided when you declare it.
+- `int` overflows silently at about ±2.1 billion — reach for `long long` when in doubt.
+- `/` between two ints truncates. `%` gives the remainder.
+- `auto` infers the type; it does not make the variable flexible.
+</KeyPoints>

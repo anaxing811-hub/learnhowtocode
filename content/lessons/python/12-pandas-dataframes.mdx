@@ -1,0 +1,195 @@
+---
+title: pandas DataFrames
+description: A spreadsheet you can program — selecting, filtering, grouping and aggregating real tabular data.
+module: Scientific Python
+order: 12
+minutes: 13
+objectives:
+  - Build a DataFrame and inspect it
+  - Select rows and columns with loc and boolean masks
+  - Group and aggregate to answer a question about the data
+---
+
+A `DataFrame` is a table: named columns, each one a NumPy array, sharing a common index. It is the format almost all data arrives in.
+
+```python run title="dataframe.py"
+import pandas as pd
+
+df = pd.DataFrame({
+    "name":    ["Ada", "Alan", "Grace", "Edsger", "Barbara"],
+    "field":   ["maths", "logic", "compilers", "algorithms", "compilers"],
+    "born":    [1815, 1912, 1906, 1930, 1926],
+    "papers":  [1, 27, 42, 88, 19],
+})
+
+print(df)
+print()
+print(df.dtypes)
+print()
+print(df.describe())
+```
+
+`describe()` is the first thing to run on any new table — it tells you the shape of the numbers and, by what is missing, where you have holes.
+
+## Selecting
+
+```python run title="selecting.py"
+import pandas as pd
+
+df = pd.DataFrame({
+    "name":   ["Ada", "Alan", "Grace", "Edsger", "Barbara"],
+    "field":  ["maths", "logic", "compilers", "algorithms", "compilers"],
+    "born":   [1815, 1912, 1906, 1930, 1926],
+    "papers": [1, 27, 42, 88, 19],
+})
+
+print(df["name"])                       # one column, as a Series
+print()
+print(df[["name", "papers"]])           # several columns, as a DataFrame
+print()
+print(df.loc[2])                        # one row by label
+print()
+print(df.loc[1:3, ["name", "born"]])    # rows and columns together
+```
+
+Note that `df["name"]` gives a **Series** (a single labelled column) while `df[["name"]]` gives a one-column DataFrame. The double brackets are a list of column names, not special syntax.
+
+## Filtering with masks
+
+```python run title="filtering.py"
+import pandas as pd
+
+df = pd.DataFrame({
+    "name":   ["Ada", "Alan", "Grace", "Edsger", "Barbara"],
+    "field":  ["maths", "logic", "compilers", "algorithms", "compilers"],
+    "born":   [1815, 1912, 1906, 1930, 1926],
+    "papers": [1, 27, 42, 88, 19],
+})
+
+modern = df["born"] > 1900
+print(modern)
+print()
+print(df[modern])
+print()
+print(df[(df["born"] > 1900) & (df["papers"] > 20)])
+print()
+print(df[df["field"].isin(["compilers", "logic"])])
+```
+
+<Callout type="gotcha" title="Use & and |, and parenthesise">
+Inside a mask you must write `&` and `|`, not `and` and `or` — the Python keywords cannot be overloaded for element-wise use. And because `&` binds more tightly than `>`, every comparison needs its own brackets. Forgetting them produces a confusing error about ambiguous truth values.
+</Callout>
+
+## Adding and transforming columns
+
+```python run title="columns.py"
+import pandas as pd
+
+df = pd.DataFrame({
+    "name":   ["Ada", "Alan", "Grace", "Edsger", "Barbara"],
+    "born":   [1815, 1912, 1906, 1930, 1926],
+    "papers": [1, 27, 42, 88, 19],
+})
+
+df["century"] = (df["born"] // 100) + 1
+df["prolific"] = df["papers"] >= 25
+df["initial"] = df["name"].str[0]
+
+print(df)
+print()
+print(df.sort_values("papers", ascending=False).head(3))
+```
+
+The `.str` accessor applies string operations down a whole column. There is a `.dt` accessor for dates that works the same way.
+
+## Grouping — the reason pandas exists
+
+```python run title="groupby.py"
+import pandas as pd
+
+df = pd.DataFrame({
+    "field":  ["maths", "logic", "compilers", "algorithms", "compilers", "logic"],
+    "name":   ["Ada", "Alan", "Grace", "Edsger", "Barbara", "Kurt"],
+    "papers": [1, 27, 42, 88, 19, 33],
+})
+
+print(df.groupby("field")["papers"].sum())
+print()
+print(df.groupby("field")["papers"].agg(["count", "mean", "max"]))
+print()
+print(df.groupby("field").size().sort_values(ascending=False))
+```
+
+*Split, apply, combine*: split the rows into groups by some key, apply an aggregation to each group, combine the answers into a new table. Almost every question you have about tabular data is a `groupby` in disguise.
+
+## Missing data
+
+```python run title="missing.py"
+import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({
+    "sensor": ["a", "b", "c", "d"],
+    "reading": [1.5, np.nan, 3.2, np.nan],
+})
+
+print(df)
+print()
+print("missing per column:")
+print(df.isna().sum())
+print()
+print("dropped:", df.dropna().shape)
+print(df.fillna(df["reading"].mean()))
+```
+
+Real data has holes. `NaN` propagates through arithmetic — a sum that touches one `NaN` is `NaN` — so decide explicitly whether to drop those rows or fill them, and record which you chose.
+
+<Quiz
+  question="Why does `df[df['a'] > 1 and df['b'] < 5]` fail?"
+  options={[
+    { text: "`and` cannot operate element-wise on a Series, so pandas raises an ambiguous-truth-value error", correct: true, explain: "`and` is a Python keyword that demands a single True/False. Use `&`, and bracket each comparison: `df[(df['a'] > 1) & (df['b'] < 5)]`." },
+    { text: "You cannot combine two conditions in pandas", explain: "You certainly can — with `&` and `|`." },
+    { text: "The columns must be the same dtype", explain: "They need not be; the masks just have to line up." },
+    { text: "`>` is not defined for Series", explain: "It is, and it returns a boolean Series. That is exactly what a mask is." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`import pandas as pd
+
+sales = pd.DataFrame({
+    "region": ["north", "south", "north", "east", "south", "east", "north"],
+    "rep":    ["ana", "bo", "cy", "dev", "eli", "fay", "gus"],
+    "amount": [120, 340, 80, 560, 210, 95, 430],
+})
+
+# 1. Total amount per region, largest first.
+# 2. Only the rows where amount is above the overall mean.
+# 3. Add a column "share" giving each row's amount as a fraction of its region's total.
+`}
+  solution={`import pandas as pd
+
+sales = pd.DataFrame({
+    "region": ["north", "south", "north", "east", "south", "east", "north"],
+    "rep":    ["ana", "bo", "cy", "dev", "eli", "fay", "gus"],
+    "amount": [120, 340, 80, 560, 210, 95, 430],
+})
+
+print(sales.groupby("region")["amount"].sum().sort_values(ascending=False))
+print()
+print(sales[sales["amount"] > sales["amount"].mean()])
+print()
+sales["share"] = sales["amount"] / sales.groupby("region")["amount"].transform("sum")
+print(sales.round(3))`}
+>
+For part 3, `groupby(...).transform("sum")` returns a Series the same length as the original, with each row carrying its group's total — exactly what you need to divide by.
+</Exercise>
+
+<KeyPoints>
+- `df["col"]` is a Series; `df[["col"]]` is a DataFrame.
+- Boolean masks filter rows. Use `&` / `|` and bracket every comparison.
+- `groupby` is split–apply–combine, and answers most questions about a table.
+- `transform` returns a group-wise result aligned to the original rows; `agg` collapses to one row per group.
+</KeyPoints>

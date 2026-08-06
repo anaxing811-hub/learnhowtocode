@@ -1,0 +1,263 @@
+---
+title: C++ reference
+description: Syntax, containers and the standard-library calls you look up rather than memorise.
+---
+
+## Fundamental types
+
+| Type | Holds | Typical size | Range |
+| --- | --- | --- | --- |
+| `bool` | `true` / `false` | 1 byte | — |
+| `char` | one character | 1 byte | −128 … 127 |
+| `int` | whole number | 4 bytes | ±2.14 × 10⁹ |
+| `long long` | whole number | 8 bytes | ±9.22 × 10¹⁸ |
+| `unsigned int` | non-negative whole number | 4 bytes | 0 … 4.29 × 10⁹ |
+| `float` | decimal | 4 bytes | ~7 significant digits |
+| `double` | decimal | 8 bytes | ~15 significant digits |
+| `std::string` | text | varies | — |
+
+`sizeof(T)` gives the size in bytes; `std::numeric_limits<T>::max()` from
+`<limits>` gives the largest value.
+
+## Operators, by precedence
+
+Highest first. When in doubt, add brackets — nobody has ever been confused by
+too many.
+
+| Operators | Notes |
+| --- | --- |
+| `::` | scope resolution |
+| `a++` `a--` `a()` `a[]` `.` `->` | postfix |
+| `++a` `--a` `!a` `-a` `*p` `&x` `(T)x` | prefix and unary |
+| `*` `/` `%` | |
+| `+` `-` | |
+| `<<` `>>` | bit shift — *and* stream insertion |
+| `<` `<=` `>` `>=` | |
+| `==` `!=` | |
+| `&` then `^` then `\|` | bitwise |
+| `&&` then `\|\|` | logical, short-circuiting |
+| `?:` | ternary |
+| `=` `+=` `-=` … | assignment, right-to-left |
+
+## Control flow
+
+```cpp
+if (x > 0) { } else if (x < 0) { } else { }
+
+switch (value) {
+  case 1:  doThing(); break;      // without break, execution falls through
+  case 2:
+  case 3:  doOther(); break;      // 2 and 3 share a body
+  default: fallback();
+}
+
+while (condition) { }
+do { } while (condition);         // body runs at least once
+
+for (int i = 0; i < n; ++i) { }
+for (const auto& item : container) { }   // range-based
+```
+
+## Containers
+
+| Container | Header | Ordered? | Lookup | Use when |
+| --- | --- | --- | --- | --- |
+| `std::vector<T>` | `<vector>` | by index | O(1) index | the default choice |
+| `std::array<T,N>` | `<array>` | by index | O(1) | size known at compile time |
+| `std::deque<T>` | `<deque>` | by index | O(1) | push/pop at both ends |
+| `std::string` | `<string>` | by index | O(1) | text |
+| `std::set<T>` | `<set>` | sorted | O(log n) | unique, sorted |
+| `std::unordered_set<T>` | `<unordered_set>` | no | O(1) average | unique, order irrelevant |
+| `std::map<K,V>` | `<map>` | sorted by key | O(log n) | key→value, sorted |
+| `std::unordered_map<K,V>` | `<unordered_map>` | no | O(1) average | key→value, fastest |
+| `std::priority_queue<T>` | `<queue>` | largest first | O(log n) push/pop | repeatedly take the extreme |
+| `std::stack<T>` / `std::queue<T>` | `<stack>` `<queue>` | — | O(1) | LIFO / FIFO |
+
+### vector
+
+```cpp
+#include <vector>
+
+std::vector<int> v;              // empty
+std::vector<int> v(10);          // ten zeroes
+std::vector<int> v(10, 7);       // ten sevens
+std::vector<int> v{1, 2, 3};     // these three
+
+v.push_back(4);      v.pop_back();
+v.size();            v.empty();       v.clear();
+v.front();           v.back();
+v[0];                v.at(0);         // at() is bounds-checked, [] is not
+v.resize(20);        v.reserve(100);  // reserve avoids reallocation
+v.insert(v.begin() + 2, 99);
+v.erase(v.begin() + 2);
+```
+
+### map
+
+```cpp
+#include <map>
+
+std::map<std::string, int> ages;
+ages["Ada"] = 36;                  // inserts if absent
+ages.at("Ada");                    // throws if absent
+ages.count("Ada");                 // 0 or 1
+ages.find("Ada") != ages.end();    // idiomatic "does it exist"
+ages.erase("Ada");
+
+for (const auto& [name, age] : ages) { /* structured binding, C++17 */ }
+```
+
+<Callout type="gotcha" title="operator[] inserts">
+`ages["nobody"]` on a `std::map` does not just look up — it *creates* the entry
+with a value-initialised value and returns a reference to it. Use `.count()` or
+`.find()` when you only mean to ask.
+</Callout>
+
+## Algorithms
+
+All from `<algorithm>` unless noted, and all take an iterator range.
+
+```cpp
+std::sort(v.begin(), v.end());
+std::sort(v.begin(), v.end(), [](int a, int b) { return a > b; });   // descending
+std::stable_sort(v.begin(), v.end());       // preserves order of equals
+std::reverse(v.begin(), v.end());
+
+std::find(v.begin(), v.end(), value);       // returns an iterator, or end()
+std::count(v.begin(), v.end(), value);
+std::binary_search(v.begin(), v.end(), x);  // the range must be sorted
+std::lower_bound(v.begin(), v.end(), x);    // first element >= x
+std::upper_bound(v.begin(), v.end(), x);    // first element > x
+
+std::max_element(v.begin(), v.end());       // iterator to the largest
+std::accumulate(v.begin(), v.end(), 0LL);   // <numeric> — note the 0LL
+std::unique(v.begin(), v.end());            // needs a sorted range; use with erase
+
+std::any_of / std::all_of / std::none_of(v.begin(), v.end(), predicate);
+```
+
+<Callout type="tip" title="The erase–remove idiom">
+`std::remove` does not remove anything — it shuffles the survivors to the front
+and returns where the new end should be. The actual deletion is the `erase`:
+
+```cpp
+v.erase(std::remove(v.begin(), v.end(), value), v.end());
+```
+
+In C++20 this is simply `std::erase(v, value)`.
+</Callout>
+
+## Strings
+
+```cpp
+#include <string>
+
+std::string s = "hello";
+s.size();     s.length();     s.empty();
+s + " world";                 s += "!";
+s.substr(1, 3);               // from index 1, three characters
+s.find("ell");                // index, or std::string::npos
+s.replace(0, 5, "howdy");
+s.push_back('!');             s.back();     s.front();
+
+std::stoi("42");   std::stoll("42");   std::stod("3.5");   // <string>
+std::to_string(42);
+
+#include <sstream>
+std::istringstream in(line);
+std::string word;
+while (in >> word) { /* split on whitespace */ }
+```
+
+## Reading input
+
+```cpp
+int n;
+std::cin >> n;                            // whitespace-delimited
+
+std::string line;
+std::getline(std::cin, line);             // a whole line
+
+int a, b;
+while (std::cin >> a >> b) { }            // until EOF or a parse failure
+
+// Competitive programming: this makes cin dramatically faster.
+std::ios::sync_with_stdio(false);
+std::cin.tie(nullptr);
+```
+
+<Callout type="gotcha" title="Mixing >> and getline">
+`std::cin >> n` leaves the newline in the buffer, so the next `getline` returns
+an empty string. Clear it with `std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');`
+</Callout>
+
+## Classes
+
+```cpp
+class Rectangle {
+public:
+    Rectangle(double w, double h) : width_(w), height_(h) {}   // init list
+
+    double area() const { return width_ * height_; }   // const = does not modify
+    void scale(double factor) { width_ *= factor; height_ *= factor; }
+
+    double width() const { return width_; }
+
+private:
+    double width_;
+    double height_;
+};
+```
+
+- `public` members are reachable from anywhere; `private` only from inside the
+  class. A `class` defaults to private, a `struct` to public — that is the only
+  difference between them.
+- The `: width_(w)` part is the **member initialiser list**. Prefer it to
+  assigning in the body: references and `const` members can only be set there.
+- Mark a member function `const` when it does not modify the object. It is
+  required to call it on a `const` object.
+
+## Pointers and references
+
+```cpp
+int x = 5;
+
+int* p = &x;      // pointer: holds an address, can be reassigned, can be null
+*p = 10;          // dereference
+
+int& r = x;       // reference: another name for x, cannot be reseated or null
+r = 20;
+
+void byValue(int v);        // gets a copy
+void byReference(int& v);   // can modify the caller's variable
+void byConstRef(const std::vector<int>& v);   // no copy, cannot modify
+```
+
+Pass large objects by `const&` — it avoids copying an entire container while
+still guaranteeing you will not change it.
+
+### Smart pointers
+
+```cpp
+#include <memory>
+
+auto a = std::make_unique<Widget>(args);   // sole owner, freed automatically
+auto b = std::make_shared<Widget>(args);   // reference-counted
+```
+
+Prefer these to raw `new` / `delete`. If you write `new`, you have taken on the
+obligation to write exactly one matching `delete` on every path out of the
+function, including the ones exceptions take.
+
+## Compiling locally
+
+```bash
+g++ -std=c++17 -O2 -Wall -Wextra -o program main.cpp
+./program
+
+g++ -std=c++17 -g -fsanitize=address,undefined -o debug main.cpp   # find bugs
+```
+
+`-Wall -Wextra` turns on the warnings that catch real mistakes.
+`-fsanitize=address,undefined` catches out-of-bounds access and undefined
+behaviour at runtime, and is worth its slowdown every time.

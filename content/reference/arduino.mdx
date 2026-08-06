@@ -1,0 +1,186 @@
+---
+title: Arduino reference
+description: The Arduino API, the Uno's pinout, and what to type when you move from the simulator to a real board.
+---
+
+An Arduino sketch is C++ — everything in the [C++ reference](/reference/cpp)
+applies. This page covers what the Arduino core adds on top.
+
+## The two functions
+
+```cpp
+void setup() {
+  // Runs once, at power-up or reset. Configure pins here.
+}
+
+void loop() {
+  // Runs forever afterwards. There is no exit.
+}
+```
+
+Behind the scenes the core supplies a `main` that calls `init()`, then
+`setup()`, then `loop()` in an infinite loop.
+
+## Digital I/O
+
+| Call | Does |
+| --- | --- |
+| `pinMode(pin, mode)` | `INPUT`, `OUTPUT` or `INPUT_PULLUP` |
+| `digitalWrite(pin, value)` | Drive an output `HIGH` (5 V) or `LOW` (0 V) |
+| `digitalRead(pin)` | Read an input; returns `HIGH` or `LOW` |
+
+`INPUT_PULLUP` enables a resistor inside the chip that holds the pin at `HIGH`
+when nothing is connected. Wire a button between the pin and ground and it
+reads `HIGH` when released, `LOW` when pressed — inverted, but it means you
+need no external resistor.
+
+## Analogue I/O
+
+| Call | Does |
+| --- | --- |
+| `analogRead(pin)` | Reads A0–A5, returns **0–1023** (10-bit) |
+| `analogWrite(pin, value)` | PWM output, **0–255**. Only on pins 3, 5, 6, 9, 10, 11 |
+| `analogReference(type)` | Changes the top of the `analogRead` range |
+
+<Callout type="gotcha" title="The two ranges are different">
+`analogRead` gives 0–1023 and `analogWrite` takes 0–255. Feeding one straight
+into the other makes everything four times too bright. Convert with
+`map(value, 0, 1023, 0, 255)`.
+</Callout>
+
+`analogWrite` is not a real analogue voltage — it switches the pin on and off
+quickly (about 490 Hz) so the *average* is what you asked for. Good for LED
+brightness and motor speed; useless as a reference voltage.
+
+## Timing
+
+| Call | Does |
+| --- | --- |
+| `delay(ms)` | Blocks for this many milliseconds |
+| `delayMicroseconds(us)` | Blocks for microseconds |
+| `millis()` | Milliseconds since power-up; wraps after ~50 days |
+| `micros()` | Microseconds since power-up; wraps after ~70 minutes |
+
+### Non-blocking timing
+
+`delay()` stops the whole chip. To do two things at once, compare timestamps
+instead:
+
+```cpp
+unsigned long previous = 0;
+const long interval = 1000;
+
+void loop() {
+  unsigned long now = millis();
+  if (now - previous >= interval) {
+    previous = now;
+    // the once-per-second work goes here
+  }
+  // everything else keeps running every pass
+}
+```
+
+Always write `now - previous >= interval`, never `now >= previous + interval`.
+Subtraction of unsigned values keeps working correctly across the ~50-day
+wraparound; addition does not.
+
+## Serial
+
+```cpp
+void setup() {
+  Serial.begin(9600);        // must match the monitor's baud rate
+}
+
+void loop() {
+  Serial.print("temp: ");
+  Serial.println(23.456, 1);  // one decimal place -> "23.5"
+  Serial.println(255, HEX);   // "FF"; also DEC, OCT, BIN
+
+  if (Serial.available() > 0) {
+    char c = Serial.read();
+  }
+}
+```
+
+`print` leaves the cursor where it is; `println` adds a newline. Serial is the
+only debugger most Arduino projects get — use it liberally.
+
+## Maths and utilities
+
+```cpp
+map(value, fromLow, fromHigh, toLow, toHigh);   // rescale, integer maths
+constrain(value, low, high);                    // clamp
+min(a, b);   max(a, b);   abs(x);   pow(b, e);   sqrt(x);
+random(max);   random(min, max);   randomSeed(analogRead(A0));
+```
+
+`map` uses integer arithmetic and truncates. `map(512, 0, 1023, 0, 255)` gives
+127, not 127.6.
+
+## Arduino Uno pinout
+
+| Pins | Notes |
+| --- | --- |
+| 0, 1 | Also the USB serial line — avoid if you use `Serial` |
+| 2, 3 | The only pins supporting `attachInterrupt` |
+| 3, 5, 6, 9, 10, 11 | PWM-capable (`analogWrite`) |
+| 13 | Wired to the on-board LED (`LED_BUILTIN`) |
+| A0–A5 | Analogue in; also usable as digital pins 14–19 |
+| 5 V, 3.3 V, GND | Power. GND appears three times; they are all connected |
+
+**Current limits:** 40 mA per pin absolute maximum, 20 mA is the safe working
+figure, and 200 mA total across the whole chip. An LED needs a series resistor
+(220 Ω is the usual choice) or it will draw too much and eventually take the
+pin with it. Motors and servos need their own supply — they will brown out the
+board otherwise.
+
+## Interrupts
+
+```cpp
+volatile bool pressed = false;
+
+void onPress() { pressed = true; }   // keep this tiny
+
+void setup() {
+  pinMode(2, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(2), onPress, FALLING);
+}
+```
+
+Any variable shared between an interrupt handler and `loop()` must be
+`volatile`, or the compiler may cache it in a register and never see the
+change. Do not call `delay()` or `Serial.print()` inside a handler.
+
+## Moving to real hardware
+
+Every sketch on this site is ordinary Arduino C++ and uploads unchanged.
+
+**Arduino IDE:** download from [arduino.cc/en/software](https://www.arduino.cc/en/software),
+paste the sketch, pick Tools ▸ Board ▸ Arduino Uno and the right port, then press Upload.
+
+**VS Code with PlatformIO:** install the PlatformIO IDE extension, create a
+project for the Uno, and put the sketch in `src/main.cpp` with `#include <Arduino.h>`
+at the top — PlatformIO does not add it for you the way the Arduino IDE does.
+
+```ini
+; platformio.ini
+[env:uno]
+platform = atmelavr
+board = uno
+framework = arduino
+monitor_speed = 9600
+```
+
+## Where the simulator differs from a real Uno
+
+Worth knowing so nothing surprises you when you plug a board in:
+
+- **Timing is exact.** The simulator advances a virtual clock, so `delay(1000)`
+  is precisely 1000 ms. A real Uno's 16 MHz crystal drifts slightly.
+- **No electrical behaviour.** Current limits, brown-outs, floating inputs and
+  contact bounce are all real problems on hardware and invisible here.
+- **`analogRead` returns what the input schedule says.** On a real board it
+  returns a noisy value that jitters by a few counts.
+- **Memory is not modelled.** An Uno has 2 KB of SRAM, and a sketch that
+  allocates too many `String` objects will run out and behave strangely. The
+  simulator will happily let you.

@@ -1,0 +1,143 @@
+---
+title: Conditions and loops
+description: Indentation is the syntax. Plus the loop idioms that make Python code look like Python.
+module: First steps
+order: 4
+minutes: 10
+objectives:
+  - Write if/elif/else and both kinds of loop
+  - Use enumerate and zip instead of index arithmetic
+  - Recognise when a for loop should have been a comprehension
+---
+
+Python uses **indentation** where most languages use braces. The colon opens a block; the indentation defines it.
+
+```python run title="if.py"
+temperature = 31
+
+if temperature > 30:
+    print("Hot")
+elif temperature > 20:
+    print("Warm")
+else:
+    print("Cold")
+```
+
+Four spaces per level is the convention. Mixing tabs and spaces is an error, and a confusing one — set your editor to insert spaces and never think about it again.
+
+## Comparisons chain
+
+```python run title="chaining.py"
+age = 25
+print(18 <= age < 65)          # reads exactly like maths
+print(0 == 0.0)                # True — values compare across numeric types
+print(bool([]), bool([0]))     # empty is falsy; a list holding 0 is not
+```
+
+Anything empty — `""`, `[]`, `{}`, `0`, `None` — is falsy. That is why `if items:` is the idiomatic way to ask "is this list non-empty".
+
+## while
+
+```python run title="while.py"
+n = 27
+steps = 0
+while n != 1:
+    n = n // 2 if n % 2 == 0 else 3 * n + 1
+    steps += 1
+print("reached 1 in", steps, "steps")
+```
+
+That is the Collatz sequence, and `a if condition else b` is Python's ternary.
+
+## for iterates over things, not indices
+
+This is where Python differs most from C++. A `for` loop walks a sequence directly.
+
+```python run title="for.py"
+for fruit in ["apple", "pear", "fig"]:
+    print(fruit)
+
+for i in range(5):          # 0,1,2,3,4
+    print(i, end=" ")
+print()
+
+for i in range(2, 11, 2):   # start, stop (exclusive), step
+    print(i, end=" ")
+print()
+```
+
+When you genuinely need the index alongside the value, use `enumerate` rather than `range(len(...))`:
+
+```python run title="enumerate.py"
+fruits = ["apple", "pear", "fig"]
+
+for i, fruit in enumerate(fruits):
+    print(i, fruit)
+
+for i, fruit in enumerate(fruits, start=1):
+    print(f"{i}. {fruit}")
+```
+
+And to walk two sequences together, `zip`:
+
+```python run title="zip.py"
+names = ["Ada", "Alan", "Grace"]
+years = [1815, 1912, 1906]
+
+for name, year in zip(names, years):
+    print(f"{name} was born in {year}")
+```
+
+<Callout type="tip" title="If you write range(len(x)), look again">
+Nine times out of ten `enumerate` or `zip` says it better. The tenth is when you are assigning back by index — and even then a comprehension is often clearer.
+</Callout>
+
+## break, continue, and the loop else
+
+```python run title="break.py"
+for n in range(2, 20):
+    for divisor in range(2, n):
+        if n % divisor == 0:
+            break
+    else:
+        # Runs only if the inner loop finished without breaking.
+        print(n, "is prime")
+```
+
+`for ... else` is unusual and worth knowing: the `else` runs when the loop completed *without* hitting `break`. It expresses "I searched and found nothing" without needing a flag variable.
+
+<Quiz
+  question="Which loop prints the index and the value of every element?"
+  options={[
+    { text: "for i, v in enumerate(items):", correct: true, explain: "enumerate yields (index, value) pairs, which unpack straight into two loop variables." },
+    { text: "for i in range(len(items)):", explain: "This gives you indices only; you would then need items[i]. It works, but enumerate says it more directly." },
+    { text: "for i, v in items:", explain: "That only works if each element is itself a pair." },
+    { text: "for v in zip(items):", explain: "zip with a single argument yields 1-tuples — not what you want here." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`scores = [88, 92, 79, 95, 61]
+names = ["Ada", "Alan", "Grace", "Edsger", "Barbara"]
+
+# Print "Ada: 88 (pass)" for each, where pass means >= 70.
+# Use zip, and a one-line conditional for the pass/fail word.
+`}
+  solution={`scores = [88, 92, 79, 95, 61]
+names = ["Ada", "Alan", "Grace", "Edsger", "Barbara"]
+
+for name, score in zip(names, scores):
+    verdict = "pass" if score >= 70 else "fail"
+    print(f"{name}: {score} ({verdict})")`}
+>
+`zip` pairs them up; `a if condition else b` picks the word.
+</Exercise>
+
+<KeyPoints>
+- Indentation is syntax. A colon opens a block.
+- Empty containers, `0` and `None` are falsy, so `if items:` means "non-empty".
+- `for` walks a sequence; use `enumerate` for indices and `zip` for parallel sequences.
+- `for ... else` runs the `else` when no `break` happened.
+</KeyPoints>

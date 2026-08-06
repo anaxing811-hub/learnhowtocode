@@ -1,0 +1,55 @@
+---
+title: "Stacking Crates"
+tier: bronze
+order: 1
+timeLimitMs: 2000
+topics:
+  - "sorting"
+  - "greedy"
+hints:
+  - "The widths genuinely do not matter. Convince yourself of that before going further."
+  - "If you decide to use a set of crates, you should place the ones with the smallest support values nearest the top."
+  - "Sort by support value ascending, then walk the list keeping a count: a crate can join the stack if its support is at least the number of crates already placed above it."
+starter:
+  cpp: |
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    
+    int main() {
+        int n;
+        std::cin >> n;
+        std::vector<int> support(n);
+        for (int i = 0; i < n; ++i) {
+            int w, s;
+            std::cin >> w >> s;
+            support[i] = s;
+        }
+        // Sort, then greedily grow the stack.
+        return 0;
+    }
+  python: |
+    import sys
+    
+    data = sys.stdin.buffer.read().split()
+    n = int(data[0])
+    support = [int(data[2 + 2 * i]) for i in range(n)]
+    # Sort, then greedily grow the stack.
+---
+
+You have `n` crates. Crate `i` has width `w_i` and can support a total weight of `s_i` on top of it. Every crate weighs exactly 1 unit.
+
+You want to build a single vertical stack using **as many crates as possible**. A stack is valid if, for every crate in it, the number of crates above it is at most that crate's support value `s_i`.
+
+The widths are a red herring; they are recorded on the inventory sheet but do not constrain the stack.
+
+Print the largest number of crates that can appear in a valid stack.
+
+## Input
+
+The first line contains `n` ( `1 <= n <= 200000` ).
+Each of the next `n` lines contains two integers `w_i` and `s_i` ( `1 <= w_i <= 10^9`, `0 <= s_i <= 200000` ).
+
+## Output
+
+A single integer: the maximum stack size.

@@ -1,0 +1,135 @@
+---
+title: Functions
+description: Defaults, keyword arguments, and the mutable-default trap that catches everyone once.
+module: Structure
+order: 5
+minutes: 10
+objectives:
+  - Define functions with default and keyword arguments
+  - Return several values at once
+  - Avoid the mutable default argument bug
+---
+
+```python run title="functions.py"
+def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("Ada"))
+```
+
+`def`, a name, parameters, a colon, an indented body. A function with no `return` returns `None`.
+
+## Defaults and keywords
+
+```python run title="defaults.py"
+def price_with_tax(amount, rate=0.2, currency="£"):
+    return f"{currency}{amount * (1 + rate):.2f}"
+
+print(price_with_tax(100))
+print(price_with_tax(100, 0.05))
+print(price_with_tax(100, currency="$"))          # skip rate by naming
+print(price_with_tax(rate=0.1, amount=50))        # order stops mattering
+```
+
+Naming arguments at the call site is not just flexibility — it is documentation. `draw(True, False, True)` is unreadable; `draw(grid=True, axes=False, legend=True)` explains itself.
+
+## Returning several values
+
+```python run title="multiple-returns.py"
+def statistics(numbers):
+    return min(numbers), max(numbers), sum(numbers) / len(numbers)
+
+low, high, mean = statistics([4, 8, 15, 16, 23, 42])
+print(low, high, round(mean, 2))
+```
+
+There is no special syntax here: the function returns a tuple, and the assignment unpacks it.
+
+## The mutable default trap
+
+```python run title="mutable-default.py"
+def add_item(item, basket=[]):     # looks reasonable
+    basket.append(item)
+    return basket
+
+print(add_item("apple"))
+print(add_item("pear"))
+print(add_item("fig"))
+```
+
+The default value is evaluated **once**, when the function is defined — not on each call. So every call that omits `basket` shares one list, which quietly accumulates. The fix is always the same:
+
+```python run title="mutable-default-fixed.py"
+def add_item(item, basket=None):
+    if basket is None:
+        basket = []
+    basket.append(item)
+    return basket
+
+print(add_item("apple"))
+print(add_item("pear"))
+```
+
+<Callout type="gotcha" title="Never use a list, dict or set as a default">
+Use `None` and build the real default inside. This is one of Python's genuine design warts, and knowing it marks the difference between someone who has read about Python and someone who has been bitten by it.
+</Callout>
+
+## Docstrings
+
+```python run title="docstring.py"
+def median(values):
+    """Return the middle value of a sorted copy of `values`.
+
+    For an even-length input, returns the mean of the two central values.
+    """
+    ordered = sorted(values)
+    n = len(ordered)
+    middle = n // 2
+    if n % 2 == 1:
+        return ordered[middle]
+    return (ordered[middle - 1] + ordered[middle]) / 2
+
+print(median([3, 1, 4, 1, 5]))
+print(median([3, 1, 4, 1]))
+print(median.__doc__.splitlines()[0])
+```
+
+A string as the first statement of a function is its docstring. `help(median)` and every editor's tooltip read it.
+
+<Quiz
+  question="Why does `def f(x, seen=[])` misbehave across calls?"
+  options={[
+    { text: "The default list is created once at definition time and shared by every call", correct: true, explain: "Defaults are evaluated when the `def` executes, not per call — so all calls that omit the argument mutate the same list." },
+    { text: "Lists cannot be used as arguments", explain: "They can; the problem is specifically about the default value's lifetime." },
+    { text: "Python copies the list on each call, which is slow", explain: "It does not copy it at all — that is exactly the problem." },
+    { text: "It only misbehaves if you also return the list", explain: "The accumulation happens whether or not you return it." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`def word_stats(text):
+    """Return (word_count, longest_word) for the given text."""
+    # Hint: text.split() gives you a list of words.
+    pass
+
+print(word_stats("the quick brown fox jumped"))
+# expected: (5, 'jumped')
+`}
+  solution={`def word_stats(text):
+    """Return (word_count, longest_word) for the given text."""
+    words = text.split()
+    return len(words), max(words, key=len)
+
+print(word_stats("the quick brown fox jumped"))`}
+>
+`max` takes a `key=` function that says what to compare by — `key=len` compares lengths.
+</Exercise>
+
+<KeyPoints>
+- Defaults are evaluated once, at definition time — never default to a list or dict.
+- Keyword arguments at the call site make code self-describing.
+- Returning several values returns a tuple, which the caller unpacks.
+- The first string in a function body is its docstring.
+</KeyPoints>

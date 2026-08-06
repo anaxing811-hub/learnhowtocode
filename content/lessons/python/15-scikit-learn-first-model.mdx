@@ -1,0 +1,199 @@
+---
+title: Your first machine learning model
+description: Train a real classifier on real data, and learn why the test set is the only number that means anything.
+module: Machine learning
+order: 15
+minutes: 15
+objectives:
+  - Train and evaluate a scikit-learn model end to end
+  - Explain why accuracy on training data is misleading
+  - Read a confusion matrix
+---
+
+<Callout type="note" title="This lesson downloads scikit-learn">
+The first cell fetches scikit-learn and its dependencies into the browser. It is the heaviest download on the site — give it a moment.
+</Callout>
+
+Every scikit-learn model has the same three methods: `fit` to learn, `predict` to apply, `score` to evaluate. Learn that shape once and every model in the library is familiar.
+
+```python run title="first-model.py"
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+X, y = load_iris(return_X_y=True)
+print("features:", X.shape, "labels:", y.shape)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=0, stratify=y
+)
+
+model = DecisionTreeClassifier(random_state=0)
+model.fit(X_train, y_train)
+
+print("training accuracy:", model.score(X_train, y_train))
+print("test accuracy:    ", model.score(X_test, y_test))
+```
+
+Look at those two numbers. Training accuracy is 1.0 — the tree has memorised every example it was shown. Test accuracy is lower, and *that* is the number that estimates how the model behaves on data it has never seen.
+
+## Why the split matters
+
+Let the tree grow without limit and it will carve the training data into perfect little boxes, one per example. It has learned the noise as diligently as the signal. That is **overfitting**, and the only way to detect it is to hold data back.
+
+```python run title="overfitting.py"
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+X, y = load_iris(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=0, stratify=y
+)
+
+print(f"{'max_depth':>10} {'train':>8} {'test':>8}")
+for depth in [1, 2, 3, 4, 5, None]:
+    model = DecisionTreeClassifier(max_depth=depth, random_state=0)
+    model.fit(X_train, y_train)
+    train = model.score(X_train, y_train)
+    test = model.score(X_test, y_test)
+    print(f"{str(depth):>10} {train:>8.3f} {test:>8.3f}")
+```
+
+Training accuracy climbs steadily toward 1.0. Test accuracy climbs, then flattens or dips. The gap between the two columns *is* overfitting, made visible.
+
+<Callout type="warning" title="Never tune on the test set">
+If you try twenty values of `max_depth` and keep the one with the best test score, you have used the test set to make a decision — and it is no longer an honest estimate of unseen performance. Real workflows split three ways (train / validation / test) or use cross-validation on the training set, and touch the test set exactly once.
+</Callout>
+
+## Cross-validation
+
+```python run title="cross-validation.py"
+from sklearn.datasets import load_iris
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeClassifier
+import numpy as np
+
+X, y = load_iris(return_X_y=True)
+
+for depth in [1, 2, 3, 4, None]:
+    scores = cross_val_score(
+        DecisionTreeClassifier(max_depth=depth, random_state=0), X, y, cv=5
+    )
+    print(f"depth {str(depth):>4}: {scores.mean():.3f} ± {scores.std():.3f}")
+```
+
+Cross-validation splits the data five ways, trains five models, and reports the spread. The `±` matters: a model scoring 0.95 ± 0.01 is meaningfully better than one scoring 0.95 ± 0.08, even though the headline number is identical.
+
+## What the model got wrong
+
+An accuracy of 0.95 tells you nothing about *which* mistakes were made. A confusion matrix does.
+
+```python run title="confusion.py"
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import confusion_matrix, classification_report
+
+data = load_iris()
+X, y = data.data, data.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=1, stratify=y
+)
+
+model = DecisionTreeClassifier(max_depth=3, random_state=0).fit(X_train, y_train)
+predictions = model.predict(X_test)
+
+print("rows = actual, columns = predicted")
+print(data.target_names)
+print(confusion_matrix(y_test, predictions))
+print()
+print(classification_report(y_test, predictions, target_names=data.target_names))
+```
+
+Read the matrix as: row *i*, column *j* is the number of examples that really were class *i* and were predicted as class *j*. Everything off the diagonal is a mistake, and the position tells you which two classes the model confuses.
+
+## Comparing two models
+
+```python run title="compare.py"
+from sklearn.datasets import load_iris
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+X, y = load_iris(return_X_y=True)
+
+candidates = {
+    "decision tree":  DecisionTreeClassifier(max_depth=3, random_state=0),
+    "random forest":  RandomForestClassifier(n_estimators=100, random_state=0),
+    "logistic":       make_pipeline(StandardScaler(), LogisticRegression(max_iter=500)),
+    "k-nearest (k=5)": make_pipeline(StandardScaler(), KNeighborsClassifier(5)),
+}
+
+for name, model in candidates.items():
+    scores = cross_val_score(model, X, y, cv=5)
+    print(f"{name:>16}: {scores.mean():.3f} ± {scores.std():.3f}")
+```
+
+Note the `make_pipeline(StandardScaler(), ...)` on two of them. Distance-based and gradient-based models care about the scale of each feature; trees do not. Wrapping the scaler in a pipeline means it is fitted on the training fold only — scaling before splitting would leak information from the test data into training, and quietly inflate every score you report.
+
+<Quiz
+  question="Your model scores 1.00 on training data and 0.72 on test data. What is the most likely diagnosis?"
+  options={[
+    { text: "Overfitting — the model memorised the training set rather than learning a general rule", correct: true, explain: "A perfect training score alongside a much lower test score is the textbook signature. Constrain the model (less depth, more regularisation) or get more data." },
+    { text: "Underfitting — the model is too simple", explain: "Underfitting shows up as poor scores on *both* sets, not a large gap between them." },
+    { text: "The test set is too small to matter", explain: "It might add noise, but a 28-point gap is far beyond sampling variation." },
+    { text: "A bug — training accuracy cannot be 1.00", explain: "It very easily can be. An unconstrained decision tree reaches it almost by construction." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`from sklearn.datasets import load_wine
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+
+X, y = load_wine(return_X_y=True)
+
+# 1. Split 70/30 with random_state=0 and stratify=y.
+# 2. Train a RandomForestClassifier.
+# 3. Print train and test accuracy.
+# 4. Print the three most important features by index.
+`}
+  solution={`from sklearn.datasets import load_wine
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+import numpy as np
+
+X, y = load_wine(return_X_y=True)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=0, stratify=y
+)
+
+model = RandomForestClassifier(n_estimators=200, random_state=0)
+model.fit(X_train, y_train)
+
+print("train:", model.score(X_train, y_train))
+print("test: ", model.score(X_test, y_test))
+
+top = np.argsort(model.feature_importances_)[::-1][:3]
+print("most important feature indices:", top)
+print("their importances:", model.feature_importances_[top].round(3))`}
+>
+`model.feature_importances_` is an array parallel to the columns of `X`. `np.argsort` gives you the indices that would sort it; reverse for descending.
+</Exercise>
+
+<KeyPoints>
+- Every estimator follows `fit` / `predict` / `score`.
+- Training accuracy measures memorisation. Only held-out data estimates generalisation.
+- A large train–test gap means overfitting; low scores on both means underfitting.
+- Put preprocessing inside a `Pipeline` so it is fitted per fold and cannot leak.
+- A confusion matrix tells you *which* classes get confused; accuracy alone does not.
+</KeyPoints>

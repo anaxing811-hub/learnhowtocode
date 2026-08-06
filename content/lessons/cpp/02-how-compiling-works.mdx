@@ -1,0 +1,75 @@
+---
+title: What actually happens when you compile
+description: The pipeline from text file to running program, and why knowing it makes error messages readable.
+module: First steps
+order: 2
+minutes: 7
+objectives:
+  - Name the four stages between source code and a running program
+  - Tell a compile error apart from a link error apart from a runtime error
+---
+
+C++ is a **compiled** language. Nothing runs until a separate program — the compiler — has translated your text into machine instructions. Python does not work this way, and the difference explains most of what feels strange about C++ at first.
+
+## The pipeline
+
+Your `.cpp` file goes through four stages:
+
+| Stage | What it does | Typical error |
+| --- | --- | --- |
+| Preprocessor | Handles `#include` and `#define`, producing one big file | `file not found` |
+| Compiler | Turns C++ into machine code, one file at a time | `expected ';'`, `no member named 'cuot'` |
+| Linker | Joins your object files and libraries into one program | `undefined reference to 'foo'` |
+| Loader | The OS loads the program and calls `main` | crashes, wrong output |
+
+When this page compiles your code, it runs the real `clang` front end and the real `wasm-ld` linker. The stage labels you see flash by — *Compiling…*, *Linking…*, *Running…* — are those exact steps.
+
+## Why the distinction matters
+
+A **compile error** means the compiler could not understand your file. Nothing was produced.
+
+```cpp run title="compile-error.cpp"
+#include <iostream>
+
+int main() {
+    std::cuot << "typo!\n";
+    return 0;
+}
+```
+
+A **link error** is different and confuses people badly, because the file was fine. Here `main` calls a function that was *declared* (promised to exist) but never *defined*:
+
+```cpp run title="link-error.cpp"
+#include <iostream>
+
+int addNumbers(int a, int b);   // a promise, with no body anywhere
+
+int main() {
+    std::cout << addNumbers(2, 3) << "\n";
+    return 0;
+}
+```
+
+The compiler is satisfied — you told it `addNumbers` exists and how to call it. The linker goes looking for the actual machine code and finds nothing.
+
+A **runtime error** happens after a completely successful build. The program runs and does the wrong thing, or crashes. No tool warned you, because nothing was formally wrong.
+
+<Callout type="tip" title="Read errors top to bottom">
+One mistake often produces a cascade. The first error is usually the real one, and the rest are the compiler flailing. Fix the top error, recompile, and watch a dozen messages disappear at once.
+</Callout>
+
+<Quiz
+  question="You define a function in your file but misspell its name where you call it. Which stage complains?"
+  options={[
+    { text: "The compiler", explain: "Close, and in a single-file program you would indeed get a compile error — the name is not declared anywhere at all." },
+    { text: "The linker", correct: true, explain: "If the misspelled name happens to match a declaration (say from a header) the compiler is satisfied and the linker fails to find a body. In a single file with no such declaration, the compiler catches it first. Both answers are defensible — which is exactly the point of knowing the stages." },
+    { text: "The loader", explain: "The loader never inspects names; by then everything is machine code and addresses." },
+    { text: "Nothing — it fails at runtime", explain: "C++ resolves names before the program ever runs. This is the trade you make for speed." },
+  ]}
+/>
+
+<KeyPoints>
+- Preprocess → compile → link → load. Each stage has its own vocabulary of failure.
+- "undefined reference" means the linker could not find a body for something you called.
+- The first compile error is the one to fix; later ones are often noise.
+</KeyPoints>

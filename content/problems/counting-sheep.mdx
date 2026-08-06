@@ -1,0 +1,45 @@
+---
+title: "Counting Sheep"
+tier: warmup
+order: 2
+timeLimitMs: 1000
+topics:
+  - "loops"
+  - "conditionals"
+hints:
+  - "One pass is enough — keep a counter and a running total in the same loop."
+  - "Watch the boundary: 'strictly greater' means a sheep with weight exactly `t` does not count."
+  - "The total can reach 100000 × 1000 = 10^8, which still fits in a 32-bit int, but `long long` costs nothing."
+starter:
+  cpp: |
+    #include <iostream>
+    
+    int main() {
+        int n, t;
+        std::cin >> n >> t;
+        // Read n weights; count and sum the ones strictly greater than t.
+        return 0;
+    }
+  python: |
+    import sys
+    
+    data = sys.stdin.read().split()
+    n, t = int(data[0]), int(data[1])
+    weights = list(map(int, data[2:2 + n]))
+    # Count and sum the weights strictly greater than t.
+---
+
+Every sheep in the flock has a wool weight recorded in whole kilograms.
+
+A sheep is **ready for shearing** if its wool weight is strictly greater than a threshold `t`.
+
+Count how many sheep are ready, and also report the total wool weight of exactly those sheep.
+
+## Input
+
+The first line contains two integers `n` and `t` ( `1 <= n <= 100000`, `0 <= t <= 1000` ).
+The second line contains `n` integers `w_1 … w_n` ( `0 <= w_i <= 1000` ).
+
+## Output
+
+One line with two integers: the number of sheep ready for shearing, and their combined wool weight. If no sheep qualifies, print `0 0`.

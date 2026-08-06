@@ -1,0 +1,49 @@
+---
+title: "Pasture Islands"
+tier: silver
+order: 2
+timeLimitMs: 2000
+topics:
+  - "graph traversal"
+  - "flood fill"
+hints:
+  - "This is flood fill. Walk every cell; when you find unvisited grass, explore everything reachable from it and count as you go."
+  - "A recursive depth-first search can blow the stack on a 1000×1000 grid that is entirely grass. Use an explicit stack or a queue."
+  - "Reading the grid line by line and indexing `grid[row][col]` is easier to get right than a single flat string."
+starter:
+  cpp: |
+    #include <iostream>
+    #include <vector>
+    #include <string>
+    
+    int main() {
+        int r, c;
+        std::cin >> r >> c;
+        std::vector<std::string> grid(r);
+        for (auto& row : grid) std::cin >> row;
+        // Flood fill each unvisited grass cell.
+        return 0;
+    }
+  python: |
+    import sys
+    
+    data = sys.stdin.read().split()
+    r, c = int(data[0]), int(data[1])
+    grid = data[2:2 + r]
+    # Flood fill each unvisited grass cell.
+---
+
+A rectangular pasture is given as a grid of `.` (grass) and `#` (water). Grass cells are connected if they touch **edge to edge** — diagonals do not count.
+
+A *field* is a maximal connected group of grass cells.
+
+Print the number of fields and the size of the largest one. If there is no grass at all, print `0 0`.
+
+## Input
+
+The first line contains `r` and `c` ( `1 <= r, c <= 1000` ).
+Each of the next `r` lines contains `c` characters, each `.` or `#`.
+
+## Output
+
+Two integers: the number of fields and the size of the largest field.

@@ -1,0 +1,297 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Theme tokens approximating shadcn preset b4cvaXruKW
+ * (style: nova, baseColor: mist, accent: teal, radius: default).
+ *
+ * These were written by hand because ui.shadcn.com is blocked by the build
+ * environment's egress policy. To snap them to the canonical preset values,
+ * run this once on a machine with normal network access:
+ *
+ *     npx shadcn@latest apply b4cvaXruKW
+ *
+ * That command overwrites the variables below and nothing else.
+ */
+
+:root {
+  --radius: 0.625rem;
+
+  /* mist — a cool, slightly blue-leaning neutral */
+  --background: oklch(0.994 0.002 247);
+  --foreground: oklch(0.216 0.019 253);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.216 0.019 253);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.216 0.019 253);
+
+  /* teal accent */
+  --primary: oklch(0.578 0.106 192.5);
+  --primary-foreground: oklch(0.988 0.012 190);
+
+  --secondary: oklch(0.962 0.007 247);
+  --secondary-foreground: oklch(0.276 0.022 253);
+
+  --muted: oklch(0.962 0.007 247);
+  --muted-foreground: oklch(0.532 0.021 251);
+
+  --accent: oklch(0.944 0.021 191);
+  --accent-foreground: oklch(0.336 0.061 194);
+
+  --destructive: oklch(0.583 0.213 27.3);
+  --destructive-foreground: oklch(0.985 0.008 27);
+
+  --border: oklch(0.917 0.008 249);
+  --input: oklch(0.917 0.008 249);
+  --ring: oklch(0.578 0.106 192.5);
+
+  /* charts — mist-family sequence with the teal accent leading */
+  --chart-1: oklch(0.578 0.106 192.5);
+  --chart-2: oklch(0.646 0.086 217);
+  --chart-3: oklch(0.702 0.072 165);
+  --chart-4: oklch(0.552 0.058 258);
+  --chart-5: oklch(0.658 0.041 247);
+
+  --sidebar: oklch(0.978 0.004 247);
+  --sidebar-foreground: oklch(0.216 0.019 253);
+  --sidebar-primary: oklch(0.578 0.106 192.5);
+  --sidebar-primary-foreground: oklch(0.988 0.012 190);
+  --sidebar-accent: oklch(0.944 0.021 191);
+  --sidebar-accent-foreground: oklch(0.336 0.061 194);
+  --sidebar-border: oklch(0.917 0.008 249);
+  --sidebar-ring: oklch(0.578 0.106 192.5);
+
+  /* per-track identity colors, used for track cards and progress rings */
+  --track-cpp: oklch(0.552 0.128 264);
+  --track-arduino: oklch(0.605 0.108 196);
+  --track-react: oklch(0.628 0.118 232);
+  --track-python: oklch(0.641 0.121 142);
+}
+
+.dark {
+  --background: oklch(0.171 0.014 253);
+  --foreground: oklch(0.962 0.005 247);
+
+  --card: oklch(0.212 0.017 253);
+  --card-foreground: oklch(0.962 0.005 247);
+  --popover: oklch(0.212 0.017 253);
+  --popover-foreground: oklch(0.962 0.005 247);
+
+  --primary: oklch(0.723 0.116 187);
+  --primary-foreground: oklch(0.196 0.036 195);
+
+  --secondary: oklch(0.263 0.019 253);
+  --secondary-foreground: oklch(0.962 0.005 247);
+
+  --muted: oklch(0.263 0.019 253);
+  --muted-foreground: oklch(0.702 0.018 249);
+
+  --accent: oklch(0.296 0.037 194);
+  --accent-foreground: oklch(0.882 0.058 188);
+
+  --destructive: oklch(0.671 0.185 24.5);
+  --destructive-foreground: oklch(0.982 0.008 27);
+
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.723 0.116 187);
+
+  --chart-1: oklch(0.723 0.116 187);
+  --chart-2: oklch(0.688 0.094 217);
+  --chart-3: oklch(0.752 0.082 165);
+  --chart-4: oklch(0.622 0.072 258);
+  --chart-5: oklch(0.708 0.045 247);
+
+  --sidebar: oklch(0.196 0.016 253);
+  --sidebar-foreground: oklch(0.962 0.005 247);
+  --sidebar-primary: oklch(0.723 0.116 187);
+  --sidebar-primary-foreground: oklch(0.196 0.036 195);
+  --sidebar-accent: oklch(0.296 0.037 194);
+  --sidebar-accent-foreground: oklch(0.882 0.058 188);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.723 0.116 187);
+
+  --track-cpp: oklch(0.678 0.126 266);
+  --track-arduino: oklch(0.712 0.104 196);
+  --track-react: oklch(0.724 0.112 232);
+  --track-python: oklch(0.742 0.116 145);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-track-cpp: var(--track-cpp);
+  --color-track-arduino: var(--track-arduino);
+  --color-track-react: var(--track-react);
+  --color-track-python: var(--track-python);
+
+  --font-sans: var(--font-roboto-slab), ui-serif, Georgia, serif;
+  --font-heading: var(--font-merriweather), ui-serif, Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+  }
+
+  /* iOS Safari zooms the page when a focused input renders under 16px. */
+  @media (max-width: 640px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 9999px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Prose styling for lesson bodies. Hand-rolled so it tracks the theme tokens
+   rather than pulling in @tailwindcss/typography's own palette. */
+.lesson-prose {
+  @apply text-[15px] leading-7 text-foreground/90;
+}
+
+.lesson-prose > * + * {
+  @apply mt-4;
+}
+
+.lesson-prose h2 {
+  @apply mt-10 scroll-mt-24 text-2xl font-semibold tracking-tight text-foreground;
+}
+
+.lesson-prose h3 {
+  @apply mt-8 scroll-mt-24 text-lg font-semibold tracking-tight text-foreground;
+}
+
+.lesson-prose h2 + *,
+.lesson-prose h3 + * {
+  @apply mt-3;
+}
+
+.lesson-prose a {
+  @apply font-medium text-primary underline underline-offset-4 hover:text-primary/80;
+}
+
+.lesson-prose strong {
+  @apply font-semibold text-foreground;
+}
+
+.lesson-prose ul {
+  @apply ml-5 list-disc space-y-2 marker:text-muted-foreground;
+}
+
+.lesson-prose ol {
+  @apply ml-5 list-decimal space-y-2 marker:text-muted-foreground;
+}
+
+.lesson-prose li > ul,
+.lesson-prose li > ol {
+  @apply mt-2;
+}
+
+.lesson-prose blockquote {
+  @apply border-l-2 border-primary/40 pl-4 text-muted-foreground italic;
+}
+
+.lesson-prose :not(pre) > code {
+  @apply rounded-[4px] border border-border/60 bg-muted px-[0.35em] py-[0.15em] font-mono text-[0.85em] text-foreground;
+}
+
+.lesson-prose pre {
+  @apply overflow-x-auto rounded-lg border border-border bg-[#1e232b] p-4 font-mono text-[13px] leading-6;
+}
+
+.lesson-prose pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+
+.lesson-prose table {
+  @apply block w-full overflow-x-auto text-sm sm:table;
+}
+
+.lesson-prose th {
+  @apply border-b border-border px-3 py-2 text-left font-semibold whitespace-nowrap;
+}
+
+.lesson-prose td {
+  @apply border-b border-border/50 px-3 py-2 align-top;
+}
+
+.lesson-prose hr {
+  @apply my-8 border-border;
+}

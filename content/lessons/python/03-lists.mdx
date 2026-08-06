@@ -1,0 +1,132 @@
+---
+title: Lists
+description: The workhorse container — how to build one, slice it, and avoid the aliasing trap.
+module: Collections
+order: 3
+minutes: 11
+objectives:
+  - Create, index and slice lists
+  - Use the common list methods
+  - Explain why two variables can point at the same list
+---
+
+A list holds an ordered sequence of values. They do not have to be the same type, though in practice they usually are.
+
+```python run title="lists.py"
+primes = [2, 3, 5, 7, 11]
+
+print(primes[0])      # first
+print(primes[-1])     # last — negative counts from the end
+print(len(primes))
+print(primes[1:4])    # a slice: indices 1, 2, 3
+print(primes[:2])     # from the start
+print(primes[::2])    # every second element
+print(primes[::-1])   # reversed
+```
+
+Slicing is `[start:stop:step]`, and `stop` is **exclusive** — `primes[1:4]` gives you three elements, not four. That exclusivity is what makes `a[:i] + a[i:]` reconstruct the original list for any `i`.
+
+## Changing a list
+
+```python run title="mutating.py"
+stack = [1, 2, 3]
+
+stack.append(4)          # add to the end
+stack.extend([5, 6])     # add several
+stack.insert(0, 0)       # insert at an index
+print(stack)
+
+last = stack.pop()       # remove and return the last
+stack.remove(3)          # remove the first occurrence of the value 3
+print(stack, "popped", last)
+
+print(sorted([3, 1, 2]))       # returns a new sorted list
+values = [3, 1, 2]
+values.sort()                  # sorts in place, returns None
+print(values)
+```
+
+<Callout type="gotcha" title="sort() returns None">
+`values = values.sort()` throws away your list and leaves you with `None`. Use `values.sort()` on its own line, or `values = sorted(values)`. This catches nearly everyone once.
+</Callout>
+
+## Two names, one list
+
+This is the single most important thing to understand about Python containers.
+
+```python run title="aliasing.py"
+a = [1, 2, 3]
+b = a           # b is not a copy — it is the same list
+b.append(4)
+
+print("a =", a)
+print("b =", b)
+print("same object?", a is b)
+```
+
+Assignment never copies a list. It copies the *reference*. If you want an independent list, ask for one:
+
+```python run title="copying.py"
+a = [1, 2, 3]
+b = a[:]          # a slice of everything is a shallow copy
+c = list(a)       # so is this
+b.append(4)
+
+print("a =", a)
+print("b =", b)
+```
+
+## Building lists from other lists
+
+The comprehension is Python's signature move:
+
+```python run title="comprehensions.py"
+numbers = [1, 2, 3, 4, 5, 6]
+
+squares = [n * n for n in numbers]
+evens = [n for n in numbers if n % 2 == 0]
+labelled = [f"#{n}" for n in numbers if n > 4]
+
+print(squares)
+print(evens)
+print(labelled)
+```
+
+Read it left to right as a sentence: *the square of n, for every n in numbers, where n is even*. Anything you can write as a comprehension is clearer as a comprehension than as a loop that appends.
+
+<Quiz
+  question="After `a = [1,2,3]` and `b = a`, what does `b.append(4)` do to `a`?"
+  options={[
+    { text: "a becomes [1, 2, 3, 4]", correct: true, explain: "`b = a` binds a second name to the same list object. There is only one list, so both names see the change." },
+    { text: "a is unchanged — b is a copy", explain: "Assignment never copies a container in Python. Use `a[:]` or `list(a)` for a copy." },
+    { text: "It raises an error", explain: "It is perfectly legal, which is precisely what makes it a trap." },
+    { text: "a becomes [4]", explain: "append adds to the end; it does not replace." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`temperatures = [12, 18, 25, 31, 9, 22, 27]
+
+# 1. Print the highest and lowest.
+# 2. Print only the temperatures above 20, using a comprehension.
+# 3. Print the list sorted, without changing the original.
+`}
+  solution={`temperatures = [12, 18, 25, 31, 9, 22, 27]
+
+print(max(temperatures), min(temperatures))
+print([t for t in temperatures if t > 20])
+print(sorted(temperatures))
+print(temperatures)  # still in the original order`}
+>
+`max` and `min` are built in. Remember that `sorted` returns a new list while `.sort()` changes the one you have.
+</Exercise>
+
+<KeyPoints>
+- Indices start at 0; negative indices count from the end.
+- Slices are `[start:stop:step]` and `stop` is exclusive.
+- Assignment binds a name to the same list — copy explicitly with `a[:]` or `list(a)`.
+- `.sort()` mutates and returns `None`; `sorted()` returns a new list.
+- Comprehensions read as sentences and beat append-loops for clarity.
+</KeyPoints>

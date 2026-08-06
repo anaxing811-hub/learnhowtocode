@@ -1,0 +1,112 @@
+---
+title: Your first program
+description: Write, compile and run a C++ program that prints a line of text — and understand every character in it.
+module: First steps
+order: 1
+minutes: 8
+objectives:
+  - Write a complete C++ program from an empty file
+  - Explain what each line of the smallest useful program does
+  - Recognise the three mistakes that break a first program
+---
+
+Here is a complete C++ program. Press **Run** — the compiler is real, and it is running on your machine, not a server.
+
+```cpp run title="hello.cpp"
+#include <iostream>
+
+int main() {
+    std::cout << "Hello, world!\n";
+    return 0;
+}
+```
+
+Six lines, and every one of them earns its place. Let us take them apart.
+
+## `#include <iostream>`
+
+C++ starts out knowing almost nothing. It knows how to add numbers and how to loop, but it has no idea how to talk to a screen. `#include <iostream>` pulls in the **input/output stream** library, which is where the screen-printing machinery lives.
+
+The `#` marks it as a *preprocessor directive*: an instruction that runs before real compilation begins, and its effect is close to copy-and-paste. Forget this line and the compiler will not recognise `std::cout`. Try it — delete the `#include` above and run it again. The error you get is worth seeing once on purpose.
+
+## `int main()`
+
+Every C++ program has exactly one `main`. When you run the program, the operating system calls `main`, and when `main` finishes the program is over. It is the front door.
+
+The `int` in front says `main` hands back an integer when it is done. The empty `()` says it takes no arguments.
+
+## `std::cout << "Hello, world!\n";`
+
+`std::cout` is the output stream connected to your terminal — "c-out", character output. The `<<` operator pushes the thing on its right into the stream on its left. You can picture data flowing in the direction the arrows point.
+
+The `\n` inside the string is an **escape sequence** meaning "newline". It is one character, not two, and without it your next print would continue on the same line.
+
+<Callout type="note" title="What is std:: doing there?">
+`std` is the *namespace* the entire standard library lives in — a surname, so that a library you write later can have its own `cout` without a collision. You will see people write `using namespace std;` to skip the prefix. It is fine in a ten-line file and a bad habit in a large one, so these lessons spell it out.
+</Callout>
+
+## `return 0;`
+
+`main` promised to hand back an `int`, and this is it. By convention `0` means "finished successfully" and anything else means something went wrong. Scripts and build tools read this number to decide whether your program worked.
+
+## The semicolon
+
+Every *statement* ends with `;`. C++ does not care about line breaks — it cares about semicolons. This compiles perfectly well:
+
+```cpp
+int main() { std::cout << "Hello, world!\n"; return 0; }
+```
+
+It is legal and unreadable, which is a useful pair of facts to hold at once.
+
+## Three ways this goes wrong
+
+Run each of these and read the error before fixing it. Compiler messages are a skill, and the only way to learn them is to cause them.
+
+```cpp run title="what-is-broken.cpp"
+#include <iostream>
+
+int main() {
+    std::cout << "Missing something!\n"
+    return 0;
+}
+```
+
+That one is a missing semicolon. Notice the compiler points at the line *after* the mistake — it only realises something is wrong when it finds `return` where it expected `;`. Compilers point at where they got confused, which is often one line past where you went wrong.
+
+<Quiz
+  question="What does `return 0;` at the end of main actually communicate?"
+  options={[
+    { text: "That the program printed successfully", explain: "Printing has already happened by then, and cout does not report back here." },
+    { text: "That the program finished without an error", correct: true, explain: "It is the exit status. 0 means success; other values signal specific failures to whatever launched the program." },
+    { text: "It frees the memory the program used", explain: "The operating system reclaims memory when the process ends, whatever value you return." },
+    { text: "Nothing — it is optional decoration", explain: "In main it can be omitted (C++ inserts return 0 for you), but it is not decoration: the value is real and readable from the shell." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="cpp"
+  starter={`#include <iostream>
+
+int main() {
+    // Print your name, then on a second line, print your favourite number.
+    return 0;
+}`}
+  solution={`#include <iostream>
+
+int main() {
+    std::cout << "Ana\\n";
+    std::cout << 7 << "\\n";
+    return 0;
+}`}
+>
+Print two lines: your name, then a number. You will need two `std::cout` statements — or one, if you feel like chaining several `<<` together.
+</Exercise>
+
+<KeyPoints>
+- `#include` brings in library code before compilation proper begins.
+- `main` is where execution starts and ends.
+- `<<` pushes values into an output stream; `\n` is a single newline character.
+- Statements end in `;`, and the compiler usually reports a missing one on the *following* line.
+</KeyPoints>

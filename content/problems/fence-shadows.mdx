@@ -1,0 +1,50 @@
+---
+title: "Fence Shadows"
+tier: bronze
+order: 2
+timeLimitMs: 2000
+topics:
+  - "intervals"
+  - "sorting"
+hints:
+  - "Sorting the intervals by left endpoint makes the structure obvious."
+  - "Sweep through the sorted intervals tracking the furthest right edge seen so far. Overlap is the part of a new interval that starts before that edge."
+  - "Careful with an interval entirely swallowed by a previous one — its whole length is overlap, and it must not extend your running right edge."
+starter:
+  cpp: |
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    
+    int main() {
+        int n;
+        std::cin >> n;
+        std::vector<std::pair<long long, long long>> shadows(n);
+        for (auto& s : shadows) std::cin >> s.first >> s.second;
+        std::sort(shadows.begin(), shadows.end());
+        // Sweep left to right.
+        return 0;
+    }
+  python: |
+    import sys
+    
+    data = sys.stdin.buffer.read().split()
+    n = int(data[0])
+    shadows = sorted(
+        (int(data[1 + 2 * i]), int(data[2 + 2 * i])) for i in range(n)
+    )
+    # Sweep left to right.
+---
+
+A long fence runs along a number line. `n` posts each cast a shadow covering a closed interval `[l_i, r_i]`.
+
+Report two numbers: the total length of fence covered by at least one shadow, and the length covered by **two or more** shadows.
+
+## Input
+
+The first line contains `n` ( `1 <= n <= 100000` ).
+Each of the next `n` lines contains `l_i` and `r_i` ( `0 <= l_i < r_i <= 10^9` ).
+
+## Output
+
+Two integers on one line: the length covered at least once, and the length covered at least twice.

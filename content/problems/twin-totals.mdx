@@ -1,0 +1,37 @@
+---
+title: "Twin Totals"
+tier: warmup
+order: 1
+timeLimitMs: 1000
+topics:
+  - "input"
+  - "arithmetic"
+hints:
+  - "Reading two numbers is `std::cin >> a >> b;` in C++ and `a, b = map(int, input().split())` in Python."
+  - "The product of two numbers near 10^9 does not fit in a 32-bit `int`. In C++ use `long long`."
+starter:
+  cpp: |
+    #include <iostream>
+    
+    int main() {
+        long long a, b;
+        std::cin >> a >> b;
+        // Print a+b, a-b and a*b separated by spaces.
+        return 0;
+    }
+  python: |
+    a, b = map(int, input().split())
+    # Print a+b, a-b and a*b separated by spaces.
+---
+
+Farm equipment comes in pairs, and the barn inventory sheet lists the two counts on one line.
+
+Read two integers `a` and `b` and print three numbers on one line, separated by single spaces: their sum, their difference `a - b`, and their product.
+
+## Input
+
+One line containing two integers `a` and `b` ( `-10^9 <= a, b <= 10^9` ).
+
+## Output
+
+One line: `a + b`, `a - b`, and `a * b`, separated by single spaces.

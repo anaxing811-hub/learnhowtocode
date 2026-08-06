@@ -1,0 +1,122 @@
+---
+title: Variables and types
+description: Python figures out types for you — which is convenient right up until it is not.
+module: First steps
+order: 2
+minutes: 9
+objectives:
+  - Create variables of the core built-in types
+  - Predict the result of mixing ints and floats
+  - Convert between strings and numbers deliberately
+---
+
+In C++ you announce a variable's type and it never changes. Python does the opposite: a variable is just a name pointing at a value, and you can point it somewhere else entirely.
+
+```python run title="types.py"
+count = 5              # int
+price = 1.25           # float
+name = "Ada"           # str
+ready = True           # bool
+nothing = None         # NoneType — the absence of a value
+
+print(count, price, name, ready, nothing)
+print(type(count), type(price), type(name))
+```
+
+```python run title="rebinding.py"
+x = 5
+print(x, type(x))
+
+x = "now I am text"
+print(x, type(x))
+```
+
+That is legal, and it is also how a large Python program turns into a mystery. The values still have types; only the *names* are flexible.
+
+## Numbers
+
+```python run title="numbers.py"
+print(7 / 2)      # 3.5   — true division, always a float
+print(7 // 2)     # 3     — floor division
+print(-7 // 2)    # -4    — floors toward negative infinity
+print(7 % 2)      # 1     — remainder
+print(2 ** 10)    # 1024  — exponent
+```
+
+Two things to file away. First, `/` in Python always gives a float, unlike C++ where `7 / 2` is 3. Second, `//` *floors* rather than truncating, so `-7 // 2` is `-4`, not `-3`. C++ integer division truncates toward zero. If you port code between the languages, this bites.
+
+<Callout type="tip" title="Python integers do not overflow">
+`2 ** 200` is an exact answer, not garbage. Python integers grow to whatever size they need, which is why it is a comfortable language for number-theory puzzles and a slow one for tight loops.
+</Callout>
+
+```python run title="bignum.py"
+print(2 ** 200)
+```
+
+## Converting on purpose
+
+```python run title="convert.py"
+text = "42"
+number = int(text)
+print(number + 1)
+
+print(float("3.5") * 2)
+print(str(99) + " bottles")
+```
+
+Python will not add a string to a number for you. `"42" + 1` is an error, and that error is a feature — it catches a genuine confusion rather than silently guessing.
+
+```python run title="type-error.py"
+print("42" + 1)
+```
+
+Read that traceback. The last line names the error type and the problem; the lines above show where it happened. Tracebacks read bottom-up.
+
+## f-strings
+
+The modern way to build text out of values:
+
+```python run title="fstrings.py"
+name = "Ada"
+year = 1843
+score = 0.87231
+
+print(f"{name} published in {year}")
+print(f"Accuracy: {score:.1%}")
+print(f"Padded: {year:>10}")
+```
+
+The `f` prefix lets you drop expressions inside `{}`. After a colon comes a format spec: `.1%` means "as a percentage with one decimal", `>10` means "right-align in ten columns". You will use these constantly once you start printing tables of numbers.
+
+<Quiz
+  question="What is the value of `-7 // 2` in Python?"
+  options={[
+    { text: "-4", correct: true, explain: "Floor division rounds toward negative infinity, so -3.5 becomes -4. C++ would give -3 because it truncates toward zero." },
+    { text: "-3", explain: "That is what C++ integer division gives. Python floors instead of truncating." },
+    { text: "-3.5", explain: "`//` always produces a whole number for int operands; `/` would give -3.5." },
+    { text: "3", explain: "The sign is preserved." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`seconds = 3725
+
+# Print "1 h 2 m 5 s" using // and %
+`}
+  solution={`seconds = 3725
+hours = seconds // 3600
+minutes = (seconds % 3600) // 60
+secs = seconds % 60
+print(f"{hours} h {minutes} m {secs} s")`}
+>
+Break 3725 seconds into hours, minutes and seconds. An f-string makes the output line tidy.
+</Exercise>
+
+<KeyPoints>
+- Names are untyped; values are typed. `type(x)` tells you what you actually have.
+- `/` is float division, `//` floors (toward negative infinity), `%` is the remainder.
+- Python integers are arbitrary precision and never overflow.
+- f-strings (`f"{value:.2f}"`) are the standard way to format output.
+</KeyPoints>

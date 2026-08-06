@@ -1,0 +1,140 @@
+---
+title: Dictionaries and sets
+description: Constant-time lookup by key — the data structure most real Python programs are built around.
+module: Collections
+order: 6
+minutes: 10
+objectives:
+  - Build and query dictionaries safely
+  - Iterate over keys, values and items
+  - Choose a set when membership is the only question
+---
+
+A dictionary maps keys to values, and looks things up in roughly constant time no matter how large it grows.
+
+```python run title="dicts.py"
+ages = {"Ada": 36, "Alan": 41, "Grace": 85}
+
+print(ages["Ada"])
+print(len(ages))
+
+ages["Edsger"] = 72        # add
+ages["Ada"] = 37           # update
+del ages["Alan"]           # remove
+print(ages)
+```
+
+## Looking up something that might not be there
+
+```python run title="missing-keys.py"
+ages = {"Ada": 36}
+
+print("Ada" in ages)
+print(ages.get("Nobody"))            # None instead of an error
+print(ages.get("Nobody", 0))         # or a default you choose
+print(ages.setdefault("Grace", 85))  # insert if missing, then return
+print(ages)
+```
+
+Indexing a missing key raises `KeyError`. That is usually what you want — a typo should not silently become `None` — but `.get` exists for when absence is genuinely expected.
+
+## Iterating
+
+```python run title="iterating-dicts.py"
+scores = {"Ada": 92, "Grace": 88, "Alan": 95}
+
+for name in scores:                  # keys by default
+    print(name, end=" ")
+print()
+
+for name, score in scores.items():   # both, unpacked
+    print(f"{name}: {score}")
+
+print(max(scores, key=scores.get))   # the key with the largest value
+print(sorted(scores.items(), key=lambda pair: -pair[1]))
+```
+
+Dictionaries preserve insertion order — guaranteed since Python 3.7, so you can rely on it.
+
+## Counting things
+
+The single most common dictionary job:
+
+```python run title="counting.py"
+text = "the rain in spain stays mainly in the plain"
+
+counts = {}
+for word in text.split():
+    counts[word] = counts.get(word, 0) + 1
+
+print(counts)
+
+# The standard library does it for you, and sorts by frequency:
+from collections import Counter
+print(Counter(text.split()).most_common(3))
+```
+
+## Sets
+
+A set is a dictionary with the values thrown away: unordered, no duplicates, fast membership tests.
+
+```python run title="sets.py"
+a = {1, 2, 3, 4}
+b = {3, 4, 5}
+
+print(a | b)     # union
+print(a & b)     # intersection
+print(a - b)     # difference
+print(a ^ b)     # in one or the other, not both
+
+print(3 in a)
+print(len({1, 1, 1, 2}))
+
+seen = set()
+for x in [1, 2, 2, 3, 1]:
+    if x in seen:
+        print(x, "is a repeat")
+    seen.add(x)
+```
+
+<Callout type="tip" title="Membership testing">
+`x in some_list` scans the whole list — that is O(n). `x in some_set` is O(1). If you are checking membership inside a loop over a large collection, converting to a set first is often the entire performance fix.
+</Callout>
+
+<Quiz
+  question="What does `{}` create in Python?"
+  options={[
+    { text: "An empty dictionary", correct: true, explain: "`{}` is an empty dict. For an empty set you must write `set()` — the braces were taken by dicts first." },
+    { text: "An empty set", explain: "A reasonable guess, but dicts claimed the braces. Use `set()`." },
+    { text: "An empty tuple", explain: "That is `()`." },
+    { text: "An empty list", explain: "That is `[]`." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`votes = ["red", "blue", "red", "green", "blue", "red"]
+
+# Print each colour and its count, ordered from most to least votes.
+# Expected:
+# red 3
+# blue 2
+# green 1
+`}
+  solution={`from collections import Counter
+
+votes = ["red", "blue", "red", "green", "blue", "red"]
+
+for colour, count in Counter(votes).most_common():
+    print(colour, count)`}
+>
+`Counter` from `collections` does the counting and `most_common()` does the ordering.
+</Exercise>
+
+<KeyPoints>
+- `d[key]` raises on a missing key; `d.get(key, default)` does not.
+- `.items()` gives key/value pairs; dicts keep insertion order.
+- `Counter` is the right tool whenever you are tallying.
+- Sets give O(1) membership; lists give O(n).
+</KeyPoints>
