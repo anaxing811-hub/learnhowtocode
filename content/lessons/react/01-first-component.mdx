@@ -1,0 +1,199 @@
+---
+title: Your first component
+description: A component is a function that returns markup. Everything else in React is a consequence of that.
+module: Components
+order: 1
+minutes: 9
+objectives:
+  - Write a component and render it
+  - Explain what JSX compiles to
+  - Embed values and expressions in markup
+---
+
+A React component is a function whose name starts with a capital letter and which returns something to draw. That is the whole definition.
+
+```jsx run title="Hello.jsx"
+export default function App() {
+  return <h1>Hello, world!</h1>;
+}
+```
+
+The preview below the editor is live: edit the text and it re-renders as you type. There is no save, no refresh.
+
+## JSX is not HTML
+
+That `<h1>` is not a string and not HTML. It is **JSX**, and a build step turns it into a function call. These two are identical:
+
+```jsx title="the same thing, twice"
+const a = <h1 className="title">Hello</h1>;
+
+const b = React.createElement("h1", { className: "title" }, "Hello");
+```
+
+Understanding that JSX is *just function calls returning objects* explains its rules:
+
+- `class` becomes `className`, because `class` is a reserved word in JavaScript.
+- `for` becomes `htmlFor`, for the same reason.
+- Attributes are camelCase: `onclick` is `onClick`, `tabindex` is `tabIndex`.
+- Every tag must close. `<br>` is invalid; write `<br />`.
+- A component must return **one** root element, because a function returns one value.
+
+```jsx run title="OneRoot.jsx"
+export default function App() {
+  return (
+    <>
+      <h2>Two elements</h2>
+      <p>wrapped in a fragment, so nothing extra ends up in the DOM.</p>
+    </>
+  );
+}
+```
+
+`<>...</>` is a **fragment** — a wrapper that groups children without producing a real element.
+
+## Braces let JavaScript in
+
+```jsx run title="Expressions.jsx"
+export default function App() {
+  const name = "Ada";
+  const year = 1843;
+  const skills = ["maths", "logic", "engines"];
+
+  return (
+    <div>
+      <h2>{name}</h2>
+      <p>Published in {year}, which was {2026 - year} years ago.</p>
+      <p>Uppercase: {name.toUpperCase()}</p>
+      <ul>
+        {skills.map((skill) => (
+          <li key={skill}>{skill}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+Anything inside `{}` is a JavaScript **expression** — something that produces a value. `{2026 - year}` works; `{if (x) {...}}` does not, because `if` is a statement. When you need a condition inside markup, use the ternary or `&&`:
+
+```jsx run title="Conditionals.jsx"
+export default function App() {
+  const temperature = 31;
+  const alerts = [];
+
+  return (
+    <div>
+      <p>It is {temperature > 30 ? "hot" : "not hot"} today.</p>
+      {temperature > 30 && <strong>Stay hydrated.</strong>}
+      {alerts.length > 0 && <p>You have alerts.</p>}
+      <p>Alerts: {alerts.length}</p>
+    </div>
+  );
+}
+```
+
+<Callout type="gotcha" title="Watch && with numbers">
+`{alerts.length && <p>…</p>}` renders a bare `0` when the array is empty, because `0` is falsy but still a renderable value. Compare explicitly — `alerts.length > 0 && …` — and the problem disappears.
+</Callout>
+
+## Components use other components
+
+```jsx run title="Composition.jsx"
+function Badge({ label }) {
+  return (
+    <span style={{
+      background: "#0f766e",
+      color: "white",
+      padding: "2px 8px",
+      borderRadius: 999,
+      fontSize: 12,
+      marginRight: 6,
+    }}>
+      {label}
+    </span>
+  );
+}
+
+function Profile({ name, tags }) {
+  return (
+    <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+      <h3 style={{ margin: "0 0 6px" }}>{name}</h3>
+      {tags.map((tag) => <Badge key={tag} label={tag} />)}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <Profile name="Ada Lovelace" tags={["maths", "engines"]} />
+      <Profile name="Grace Hopper" tags={["compilers", "navy"]} />
+    </div>
+  );
+}
+```
+
+Two things to notice. The capital letter is load-bearing: `<Badge />` renders your component, while `<badge />` would emit a literal HTML tag React does not recognise. And `style` takes an object, not a string — hence the double braces `{{ }}`: the outer pair enters JavaScript, the inner pair is the object.
+
+<Quiz
+  question="Why must a component's name start with a capital letter?"
+  options={[
+    { text: "JSX treats lowercase tags as HTML elements and capitalised ones as components", correct: true, explain: "`<div />` compiles to createElement(\"div\") — a string. `<Div />` compiles to createElement(Div) — your function. The case is how the compiler tells them apart." },
+    { text: "It is a style convention with no effect", explain: "It genuinely changes what the code compiles to." },
+    { text: "React reads the name to generate CSS classes", explain: "React does not generate class names." },
+    { text: "Only capitalised functions may return JSX", explain: "Any function can return JSX; the case matters at the call site." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="jsx"
+  starter={`function Stat({ label, value }) {
+  // Return a small block showing the label above the value.
+  return null;
+}
+
+export default function App() {
+  const stats = [
+    { label: "Lessons", value: 12 },
+    { label: "Problems", value: 8 },
+    { label: "Streak", value: 3 },
+  ];
+
+  // Render one <Stat /> per entry, side by side.
+  return <div />;
+}`}
+  solution={`function Stat({ label, value }) {
+  return (
+    <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, minWidth: 90 }}>
+      <div style={{ fontSize: 11, textTransform: "uppercase", opacity: 0.6 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 700 }}>{value}</div>
+    </div>
+  );
+}
+
+export default function App() {
+  const stats = [
+    { label: "Lessons", value: 12 },
+    { label: "Problems", value: 8 },
+    { label: "Streak", value: 3 },
+  ];
+
+  return (
+    <div style={{ display: "flex", gap: 10 }}>
+      {stats.map((stat) => (
+        <Stat key={stat.label} label={stat.label} value={stat.value} />
+      ))}
+    </div>
+  );
+}`}
+>
+Destructure the props in the parameter list — `function Stat({ label, value })` — and remember the `key` when mapping over a list.
+</Exercise>
+
+<KeyPoints>
+- A component is a capitalised function returning JSX; the capital is what makes it a component.
+- JSX compiles to `React.createElement` calls, which explains `className`, camelCase props and self-closing tags.
+- `{}` embeds an expression, never a statement.
+- Return one root; use `<>…</>` when you do not want a real wrapper element.
+</KeyPoints>

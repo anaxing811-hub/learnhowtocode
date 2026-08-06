@@ -1,0 +1,237 @@
+---
+title: State
+description: How a component remembers something between renders, and why you must never assign to it directly.
+module: Interactivity
+order: 3
+minutes: 12
+objectives:
+  - Add state with useState and update it from an event
+  - Explain why mutating state directly does nothing
+  - Update objects and arrays in state correctly
+---
+
+A plain variable inside a component is recreated from scratch on every render. To remember something across renders, you need state.
+
+Here is the version that does not work. Click the button:
+
+```jsx run title="Broken.jsx"
+export default function App() {
+  let count = 0;
+
+  return (
+    <button onClick={() => { count = count + 1; console.log("count is now", count); }}>
+      Clicked {count} times
+    </button>
+  );
+}
+```
+
+The console shows the number going up, but the button never changes. Two separate problems: the variable resets to `0` every render, and nothing told React to render again.
+
+## useState fixes both
+
+```jsx run title="Counter.jsx"
+import { useState } from "react";
+
+export default function App() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <button onClick={() => setCount(count - 1)}>−</button>
+      <strong style={{ minWidth: 40, textAlign: "center" }}>{count}</strong>
+      <button onClick={() => setCount(count + 1)}>+</button>
+      <button onClick={() => setCount(0)}>reset</button>
+    </div>
+  );
+}
+```
+
+`useState(0)` returns a pair: the current value, and a function that replaces it. Calling the setter does two things — it stores the new value *outside* the component, so it survives the next render, and it tells React to render again.
+
+The array destructuring `const [count, setCount]` is just convention; the names are yours. `useState` returns an array precisely so you can name both halves whatever you want.
+
+## The setter is not immediate
+
+```jsx run title="Stale.jsx"
+import { useState } from "react";
+
+export default function App() {
+  const [count, setCount] = useState(0);
+
+  function addThreeWrong() {
+    setCount(count + 1);
+    setCount(count + 1);
+    setCount(count + 1);
+  }
+
+  function addThreeRight() {
+    setCount((c) => c + 1);
+    setCount((c) => c + 1);
+    setCount((c) => c + 1);
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <strong>count: {count}</strong>
+      <button onClick={addThreeWrong}>+3 the wrong way</button>
+      <button onClick={addThreeRight}>+3 the right way</button>
+    </div>
+  );
+}
+```
+
+Press each and watch. The first adds **one**, not three.
+
+Within a single event handler, `count` is a fixed value — the one captured when this render happened. All three calls compute `0 + 1`. Passing a *function* instead, `setCount(c => c + 1)`, tells React "whatever the latest value is, add one to it", and the three updates queue up properly.
+
+<Callout type="tip" title="The rule">
+If the next value depends on the current one, pass a function to the setter. If it does not — `setName("Ada")` — pass the value directly.
+</Callout>
+
+## Never mutate state
+
+```jsx run title="Mutation.jsx"
+import { useState } from "react";
+
+export default function App() {
+  const [items, setItems] = useState(["apples"]);
+  const [text, setText] = useState("");
+
+  function addWrong() {
+    items.push(text);       // mutates the existing array
+    setItems(items);        // same array reference — React sees no change
+    setText("");
+  }
+
+  function addRight() {
+    setItems([...items, text]);   // a brand new array
+    setText("");
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 8, maxWidth: 320 }}>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="something to add"
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={addWrong}>add (broken)</button>
+        <button onClick={addRight}>add (correct)</button>
+      </div>
+      <ul>{items.map((item, i) => <li key={i}>{item}</li>)}</ul>
+    </div>
+  );
+}
+```
+
+React decides whether to re-render by comparing the old value with the new one by **identity**. `items.push(...)` changes the contents but leaves the reference identical, so React concludes nothing happened. Build a new array or object instead:
+
+```jsx title="the patterns worth memorising"
+setItems([...items, newItem]);                          // append
+setItems(items.filter((x) => x.id !== id));             // remove
+setItems(items.map((x) => x.id === id ? { ...x, done: true } : x));  // update one
+
+setUser({ ...user, name: "Ada" });                      // change one field
+```
+
+## Controlled inputs
+
+Notice the input above: its `value` comes from state and its `onChange` writes back to state. That is a **controlled component** — React owns the value, so it can be validated, transformed or reset from code.
+
+```jsx run title="Controlled.jsx"
+import { useState } from "react";
+
+export default function App() {
+  const [email, setEmail] = useState("");
+  const valid = email.includes("@") && email.includes(".");
+
+  return (
+    <div style={{ display: "grid", gap: 6, maxWidth: 320 }}>
+      <input
+        value={email}
+        onChange={(e) => setEmail(e.target.value.trim().toLowerCase())}
+        placeholder="you@example.com"
+        style={{ padding: 8, border: `1px solid ${email && !valid ? "#dc2626" : "#ccc"}`, borderRadius: 6 }}
+      />
+      {email && !valid && (
+        <small style={{ color: "#dc2626" }}>That does not look like an email address.</small>
+      )}
+      <button disabled={!valid}>Sign up</button>
+    </div>
+  );
+}
+```
+
+Type a capital letter or a leading space — it is normalised on the way in, because every keystroke passes through your code.
+
+<Quiz
+  question="Inside one click handler you call `setCount(count + 1)` three times, starting from 0. What is count afterwards?"
+  options={[
+    { text: "1", correct: true, explain: "`count` is fixed at 0 for the whole handler, so all three calls set it to 1. Use `setCount(c => c + 1)` to get 3." },
+    { text: "3", explain: "That is what the functional form gives you. The direct form uses the same captured value three times." },
+    { text: "0", explain: "The updates do apply — just all to the same starting value." },
+    { text: "It re-renders three times, ending at 3", explain: "React batches the updates, and each one computed 0 + 1 regardless." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="jsx"
+  starter={`import { useState } from "react";
+
+export default function App() {
+  const [todos, setTodos] = useState([
+    { id: 1, text: "Read the lesson", done: true },
+    { id: 2, text: "Write a component", done: false },
+  ]);
+
+  // Add a toggle(id) that flips the "done" flag of one todo,
+  // without mutating the existing array or objects.
+  // Render each todo with a checkbox wired to toggle.
+
+  return <div />;
+}`}
+  solution={`import { useState } from "react";
+
+export default function App() {
+  const [todos, setTodos] = useState([
+    { id: 1, text: "Read the lesson", done: true },
+    { id: 2, text: "Write a component", done: false },
+  ]);
+
+  function toggle(id) {
+    setTodos((current) =>
+      current.map((todo) =>
+        todo.id === id ? { ...todo, done: !todo.done } : todo
+      )
+    );
+  }
+
+  const remaining = todos.filter((t) => !t.done).length;
+
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      {todos.map((todo) => (
+        <label key={todo.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input type="checkbox" checked={todo.done} onChange={() => toggle(todo.id)} />
+          <span style={{ textDecoration: todo.done ? "line-through" : "none" }}>
+            {todo.text}
+          </span>
+        </label>
+      ))}
+      <small>{remaining} remaining</small>
+    </div>
+  );
+}`}
+>
+`map` is the tool: return a new object for the matching id and the original object for everything else. Note that `remaining` is derived from state on every render rather than stored — if a value can be computed, do not put it in state.
+</Exercise>
+
+<KeyPoints>
+- `useState` gives a value plus a setter; calling the setter schedules a re-render.
+- Inside one handler the state variable is a snapshot — use `setX(prev => …)` when the new value depends on the old.
+- React compares by reference: always create a new array or object rather than mutating.
+- Anything you can compute from existing state should be computed, not stored.
+</KeyPoints>

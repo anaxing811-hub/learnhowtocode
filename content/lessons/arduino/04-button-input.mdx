@@ -1,0 +1,200 @@
+---
+title: Reading a button
+description: Inputs, pull-up resistors, and why a button press is never as clean as you expect.
+module: Input
+order: 4
+minutes: 11
+objectives:
+  - Wire and read a push button with INPUT_PULLUP
+  - Explain why a floating input reads randomly
+  - Detect a press rather than a held state
+---
+
+Output was the easy half. Reading the outside world introduces a problem that
+does not exist in software: a wire that is not connected to anything does not
+read `LOW` — it reads *noise*.
+
+## The floating input problem
+
+An input pin is extremely high impedance: it senses voltage without drawing
+current. Connect it to nothing and it picks up whatever electrical noise is in
+the air, reading `HIGH` and `LOW` at random.
+
+A button only connects two things while it is pressed. So while it is *not*
+pressed, the pin is connected to nothing — floating.
+
+The fix is a resistor that gently holds the pin at a known level when nothing
+else is driving it. The ATmega328P has one built in:
+
+```cpp run title="Button.ino" leds="13" button="2"
+void setup() {
+  pinMode(2, INPUT_PULLUP);   // idle HIGH, pressed LOW
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int state = digitalRead(2);
+  digitalWrite(13, state == LOW ? HIGH : LOW);
+  delay(20);
+}
+```
+
+Press the **Press button** control under the board. The LED follows.
+
+<Callout type="note" title="The logic is inverted, and that is normal">
+With `INPUT_PULLUP` the resistor pulls the pin up to 5 V, so it reads `HIGH`
+when the button is *released*. Pressing connects the pin to ground, so it
+reads `LOW`. Wiring is: one leg to pin 2, the other leg to GND. No external
+resistor, and no connection to 5 V.
+</Callout>
+
+## State versus edge
+
+The sketch above reacts to the button being *held*. Usually you want to react
+once, at the moment it is pressed — the **edge**.
+
+```cpp run title="EdgeDetect.ino" leds="13" button="2"
+int lastState = HIGH;
+int pressCount = 0;
+
+void setup() {
+  pinMode(2, INPUT_PULLUP);
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int state = digitalRead(2);
+
+  // A falling edge: it was released last pass, it is pressed now.
+  if (lastState == HIGH && state == LOW) {
+    pressCount++;
+    Serial.print("press #");
+    Serial.println(pressCount);
+    digitalWrite(13, pressCount % 2);   // toggle on each press
+  }
+
+  lastState = state;
+  delay(20);
+}
+```
+
+Remembering the previous reading and comparing it to the current one is the
+whole technique. Without it, holding the button for one second at a 20 ms loop
+would count fifty presses.
+
+## Debouncing
+
+A real switch is two pieces of metal springing together. For a few
+milliseconds they bounce, making and breaking contact several times. The chip
+is fast enough to see every one of those as a separate press.
+
+```cpp title="the standard fix"
+const unsigned long DEBOUNCE_MS = 50;
+unsigned long lastChange = 0;
+int stableState = HIGH;
+int lastReading = HIGH;
+
+void loop() {
+  int reading = digitalRead(2);
+
+  if (reading != lastReading) {
+    lastChange = millis();      // the signal moved; restart the timer
+  }
+
+  if (millis() - lastChange > DEBOUNCE_MS) {
+    // It has been steady long enough to trust.
+    if (reading != stableState) {
+      stableState = reading;
+      if (stableState == LOW) onPress();
+    }
+  }
+
+  lastReading = reading;
+}
+```
+
+The idea: ignore the input until it has held the same value for 50 ms. The
+`delay(20)` in the earlier sketch is a crude version of the same thing — good
+enough for a demo, not for a product.
+
+The simulator does not model bounce, so both versions look identical here. On
+real hardware the difference is obvious immediately, which is worth knowing
+before you conclude your wiring is broken.
+
+<Quiz
+  question="With INPUT_PULLUP and a button wired between the pin and GND, what does digitalRead return when the button is NOT pressed?"
+  options={[
+    { text: "HIGH", correct: true, explain: "The internal pull-up holds the pin at 5 V. Pressing connects it to ground, giving LOW. The logic reads inverted, which surprises people at first." },
+    { text: "LOW", explain: "That is the pressed state — the button connects the pin to ground." },
+    { text: "It fluctuates randomly", explain: "That is what happens with plain INPUT and no resistor. The pull-up is exactly what prevents it." },
+    { text: "0 or 1 depending on the last digitalWrite", explain: "digitalWrite on an input pin toggles the pull-up rather than setting a readable value." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="arduino"
+  starter={`int lastState = HIGH;
+int mode = 0;
+
+void setup() {
+  pinMode(2, INPUT_PULLUP);
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Cycle through three modes on each press:
+  //   0 = LED off, 1 = LED on, 2 = LED blinking every 200 ms.
+  // Print the mode to Serial whenever it changes.
+}`}
+  solution={`int lastState = HIGH;
+int mode = 0;
+unsigned long lastBlink = 0;
+bool blinkOn = false;
+
+void setup() {
+  pinMode(2, INPUT_PULLUP);
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int state = digitalRead(2);
+
+  if (lastState == HIGH && state == LOW) {
+    mode = (mode + 1) % 3;
+    Serial.print("mode ");
+    Serial.println(mode);
+  }
+  lastState = state;
+
+  if (mode == 0) {
+    digitalWrite(13, LOW);
+  } else if (mode == 1) {
+    digitalWrite(13, HIGH);
+  } else {
+    if (millis() - lastBlink >= 200) {
+      lastBlink = millis();
+      blinkOn = !blinkOn;
+      digitalWrite(13, blinkOn ? HIGH : LOW);
+    }
+  }
+
+  delay(10);
+}`}
+>
+Note that the blinking mode cannot use `delay(200)` — that would freeze the
+loop and make the button unresponsive. Comparing `millis()` against a saved
+timestamp keeps both jobs running.
+</Exercise>
+
+<KeyPoints>
+- An input pin connected to nothing floats and reads noise. `INPUT_PULLUP` fixes it with no extra parts.
+- With a pull-up, released reads `HIGH` and pressed reads `LOW`.
+- Compare the current reading to the previous one to detect a press rather than a hold.
+- Real switches bounce; ignore the input until it has been steady for ~50 ms.
+- Never `delay()` in a sketch that also has to watch an input.
+</KeyPoints>

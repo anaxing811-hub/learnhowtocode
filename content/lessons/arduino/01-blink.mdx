@@ -1,0 +1,131 @@
+---
+title: Blink
+description: The traditional first sketch — and a careful look at the two functions the board calls for you.
+module: First sketches
+order: 1
+minutes: 9
+objectives:
+  - Explain what setup and loop are for
+  - Drive an output pin high and low
+  - Change a blink rate and predict the result before running it
+---
+
+Press **Run**. The sketch compiles with the same clang used by the C++ track, then drives a simulated Arduino Uno below the editor.
+
+```arduino run title="Blink.ino" leds="13"
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(500);
+}
+```
+
+The LED marked **13 (L)** is the one soldered onto the board itself, next to pin 13. Every Uno has one, which is why Blink needs no wiring.
+
+## setup runs once, loop runs forever
+
+An Arduino sketch is C++ with the `main` function hidden from you. It looks roughly like this:
+
+```cpp title="what Arduino does for you"
+int main() {
+  init();          // configure timers, enable interrupts
+  setup();         // your one-time configuration
+  for (;;) {
+    loop();        // your code, again and again, until power is cut
+  }
+}
+```
+
+That is the entire difference between an Arduino sketch and an ordinary C++ program. `setup()` is where you say what each pin is for; `loop()` is the body of an infinite loop.
+
+There is no "end". A microcontroller has nothing to return to — pull the USB cable and it stops, plug it back in and `setup()` runs again from the top.
+
+## pinMode, and why it exists
+
+```cpp
+pinMode(LED_BUILTIN, OUTPUT);
+```
+
+Each pin can be an input or an output, and the chip must be told which. An **output** pin drives the wire to 5 V or 0 V. An **input** pin listens without driving. Skip `pinMode` and pin 13 stays an input, so `digitalWrite` has almost no visible effect — a classic first-hour puzzle.
+
+`LED_BUILTIN` is just `13` with a helpful name. `HIGH` is `1` and `LOW` is `0`; the names exist so the code says what it means.
+
+## delay stops everything
+
+```arduino run title="FastBlink.ino" leds="13"
+void setup() {
+  pinMode(13, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(13, HIGH);
+  delay(100);
+  digitalWrite(13, LOW);
+  delay(100);
+}
+```
+
+`delay(100)` blocks. For those 100 milliseconds the chip does nothing else at all — it cannot read a button, cannot update a display, cannot talk over serial. That is fine for Blink and a serious problem for anything real, which is why a later lesson replaces it with `millis()`.
+
+<Callout type="note" title="Time here is simulated">
+The sketch runs to completion inside WebAssembly against a virtual clock, recording every pin change with a timestamp. The board below then replays that timeline in real time. That is why `delay(500)` costs no waiting at all, and why you can scrub backwards through a run.
+</Callout>
+
+## Break it on purpose
+
+Delete the `pinMode` line and run it. Then put it back and change the two delays to different values — say 900 and 100 — and predict what you will see before pressing Run.
+
+<Quiz
+  question="What happens if you omit `pinMode(13, OUTPUT)` from setup?"
+  options={[
+    { text: "Pin 13 stays an input, so digitalWrite cannot properly drive the LED", correct: true, explain: "digitalWrite on an input pin toggles the internal pull-up resistor instead of driving the pin. On a real Uno the LED may glow very faintly or not at all." },
+    { text: "The sketch fails to compile", explain: "pinMode is not required by the compiler — this is a logic error, not a syntax one, which is what makes it hard to spot." },
+    { text: "The LED blinks twice as fast", explain: "Timing is unaffected; the delays are unchanged." },
+    { text: "setup runs repeatedly instead of once", explain: "setup always runs exactly once, whatever is inside it." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="arduino"
+  starter={`void setup() {
+  pinMode(13, OUTPUT);
+}
+
+void loop() {
+  // Make an SOS pattern: three short blinks (150 ms on, 150 ms off),
+  // then three long blinks (450 ms on, 150 ms off), then three short.
+  // Finish each full cycle with a 1000 ms pause.
+}`}
+  solution={`void setup() {
+  pinMode(13, OUTPUT);
+}
+
+void blink(int onTime) {
+  digitalWrite(13, HIGH);
+  delay(onTime);
+  digitalWrite(13, LOW);
+  delay(150);
+}
+
+void loop() {
+  for (int i = 0; i < 3; i++) blink(150);
+  for (int i = 0; i < 3; i++) blink(450);
+  for (int i = 0; i < 3; i++) blink(150);
+  delay(1000);
+}`}
+>
+You can define your own functions in a sketch — anything above `loop()` is available to it. A small `blink(int onTime)` helper makes this far shorter than nine copy-pasted pairs.
+</Exercise>
+
+<KeyPoints>
+- `setup()` runs once at power-up; `loop()` runs forever after it.
+- Every pin needs `pinMode` before it will behave as an output.
+- `LED_BUILTIN` is pin 13 on an Uno, and it is already wired to an LED.
+- `delay()` blocks the entire chip for its duration.
+</KeyPoints>

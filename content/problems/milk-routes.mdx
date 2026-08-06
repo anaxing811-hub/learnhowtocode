@@ -1,0 +1,58 @@
+---
+title: "Milk Routes"
+tier: gold
+order: 2
+timeLimitMs: 2000
+topics:
+  - "shortest path"
+  - "dijkstra"
+  - "priority queue"
+hints:
+  - "All weights are positive, so Dijkstra applies. Breadth-first search does not — it only works when every edge costs the same."
+  - "Use a priority queue keyed by tentative distance. Pop the closest unfinished node, relax its outgoing edges, repeat."
+  - "Distances can reach 100000 × 10^9 = 10^14. A 32-bit int overflows; use `long long`."
+  - "Skip a popped entry whose recorded distance is worse than the best you already know — that is the lazy-deletion trick that keeps the queue simple."
+starter:
+  cpp: |
+    #include <iostream>
+    #include <vector>
+    #include <queue>
+    
+    int main() {
+        int n, m;
+        std::cin >> n >> m;
+        std::vector<std::vector<std::pair<int, long long>>> adj(n + 1);
+        for (int j = 0; j < m; ++j) {
+            int u, v; long long w;
+            std::cin >> u >> v >> w;
+            adj[u].push_back({v, w});
+        }
+        // Dijkstra from node 1.
+        return 0;
+    }
+  python: |
+    import sys, heapq
+    
+    data = sys.stdin.buffer.read().split()
+    n, m = int(data[0]), int(data[1])
+    adj = [[] for _ in range(n + 1)]
+    for j in range(m):
+        u = int(data[2 + 3 * j]); v = int(data[3 + 3 * j]); w = int(data[4 + 3 * j])
+        adj[u].append((v, w))
+    # Dijkstra from node 1.
+---
+
+The dairy network has `n` depots and `m` one-way roads. Road `j` runs from `u_j` to `v_j` and takes `w_j` minutes.
+
+A truck starts at depot `1`. For every depot, report the shortest travel time from depot `1`, or `-1` if it cannot be reached.
+
+## Input
+
+The first line contains `n` and `m` ( `1 <= n <= 100000`, `0 <= m <= 200000` ).
+Each of the next `m` lines contains `u_j`, `v_j` and `w_j` ( `1 <= u_j, v_j <= n`, `1 <= w_j <= 10^9` ).
+
+Roads are one-way. There may be several roads between the same pair of depots, and a road may loop from a depot to itself.
+
+## Output
+
+`n` integers on one line: the shortest time to depots `1 … n`, with `-1` for unreachable ones. The first number is always `0`.

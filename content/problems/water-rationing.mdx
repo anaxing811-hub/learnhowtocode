@@ -1,0 +1,49 @@
+---
+title: "Water Rationing"
+tier: silver
+order: 1
+timeLimitMs: 2000
+topics:
+  - "binary search on answer"
+  - "greedy"
+hints:
+  - "You are being asked to minimise a maximum. That phrasing is almost always a binary search on the answer."
+  - "For a candidate strain `X`, greedily fill one family until adding the next tank would exceed `X`, then start a new family. Count how many families that needs."
+  - "If the greedy count is at most `k`, then `X` is achievable, so search lower. The lower bound of the search is the largest single tank; the upper bound is the total."
+starter:
+  cpp: |
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    
+    int main() {
+        int n, k;
+        std::cin >> n >> k;
+        std::vector<long long> a(n);
+        for (auto& x : a) std::cin >> x;
+        // Binary search the answer between max(a) and sum(a).
+        return 0;
+    }
+  python: |
+    import sys
+    
+    data = sys.stdin.buffer.read().split()
+    n, k = int(data[0]), int(data[1])
+    a = list(map(int, data[2:2 + n]))
+    # Binary search the answer between max(a) and sum(a).
+---
+
+There are `n` water tanks in a row, tank `i` holding `a_i` litres. You must hand out the water to `k` families.
+
+Each family receives water from **one contiguous run of tanks**, the runs must not overlap, every tank must be given to exactly one family, and every family must receive at least one tank.
+
+The **strain** on a family is the total litres it has to carry. Choose the split that makes the largest strain as small as possible, and print that value.
+
+## Input
+
+The first line contains `n` and `k` ( `1 <= k <= n <= 200000` ).
+The second line contains `n` integers `a_i` ( `1 <= a_i <= 10^9` ).
+
+## Output
+
+A single integer: the smallest possible value of the largest family's strain.

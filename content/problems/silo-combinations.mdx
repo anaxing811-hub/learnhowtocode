@@ -1,0 +1,56 @@
+---
+title: "Silo Combinations"
+tier: gold
+order: 1
+timeLimitMs: 2000
+topics:
+  - "dynamic programming"
+  - "counting"
+hints:
+  - "Start with the ordered version: `ways[v] = sum over coins of ways[v - c]`. Then ask why that overcounts here."
+  - "To count combinations rather than permutations, fix an order on the coins: loop over coins in the outer loop and capacities in the inner loop. Each coin is then only ever added after the ones before it."
+  - "Swapping the two loops is exactly the difference between counting permutations and counting combinations. That is the whole problem."
+starter:
+  cpp: |
+    #include <iostream>
+    #include <vector>
+    
+    int main() {
+        int n, x;
+        std::cin >> n >> x;
+        std::vector<int> coins(n);
+        for (auto& c : coins) std::cin >> c;
+    
+        const long long MOD = 1000000007;
+        std::vector<long long> ways(x + 1, 0);
+        ways[0] = 1;
+        // Outer loop over coins, inner loop over capacities.
+        return 0;
+    }
+  python: |
+    import sys
+    
+    data = sys.stdin.read().split()
+    n, x = int(data[0]), int(data[1])
+    coins = list(map(int, data[2:2 + n]))
+    
+    MOD = 1000000007
+    ways = [0] * (x + 1)
+    ways[0] = 1
+    # Outer loop over coins, inner loop over capacities.
+---
+
+A silo is filled using scoops of `n` distinct sizes. You have an unlimited supply of every size.
+
+Count the number of ways to fill a silo of capacity exactly `x`, where **the order of scoops does not matter** — using a 2-scoop then a 3-scoop is the same as a 3-scoop then a 2-scoop.
+
+Because the count can be enormous, print it modulo `1000000007`.
+
+## Input
+
+The first line contains `n` and `x` ( `1 <= n <= 100`, `1 <= x <= 100000` ).
+The second line contains `n` distinct integers `c_i` ( `1 <= c_i <= x` ).
+
+## Output
+
+The number of unordered ways to reach exactly `x`, modulo `1000000007`.

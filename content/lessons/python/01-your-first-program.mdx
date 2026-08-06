@@ -1,0 +1,79 @@
+---
+title: Your first Python program
+description: Print something, then understand why Python needs so much less ceremony than C++ to do it.
+module: First steps
+order: 1
+minutes: 6
+objectives:
+  - Run a Python program and read its output
+  - Use print with several values
+  - Explain why Python needs no main function
+---
+
+Here is a complete Python program. Press **Run** — this is real CPython, compiled to WebAssembly and running in this tab.
+
+```python run title="hello.py"
+print("Hello, world!")
+```
+
+One line. Compare that to the C++ version, which needed an `#include`, a `main` function, a namespace prefix and a `return`. Python does not need any of it:
+
+- There is no `main`. A Python file *is* the program; the interpreter runs it top to bottom.
+- There is no compile step you have to invoke. Python reads your source and executes it.
+- There is no `#include` for basic output. `print` is always available.
+
+That difference is the whole trade Python makes: less to type, less to think about, and in return your program runs considerably slower and mistakes surface later. For a beginner, and for data work, that trade is usually worth it.
+
+## print does more than one thing
+
+```python run title="print.py"
+print("one", "two", "three")
+print("no newline after this", end=" -> ")
+print("see?")
+print()
+print("Sum:", 2 + 3)
+```
+
+Given several arguments, `print` joins them with a space. `end=` changes what it puts at the end — a newline by default. A bare `print()` emits just the blank line.
+
+<Callout type="note" title="Quotes">
+`'single'` and `"double"` quotes mean exactly the same thing in Python. Pick one and be consistent; use the other when your text contains the first, as in `"it's fine"`.
+</Callout>
+
+## Comments
+
+```python run title="comments.py"
+# Everything after a hash is ignored.
+print("this runs")  # including at the end of a line
+```
+
+Python has no `/* ... */` block comment. Multiple `#` lines are the idiom.
+
+<Quiz
+  question="What does `print('a', 'b', sep='-')` output?"
+  options={[
+    { text: "a-b", correct: true, explain: "`sep` sets the separator placed between the arguments; it defaults to a single space." },
+    { text: "a b-", explain: "That would be `end='-'`, which controls what comes after everything." },
+    { text: "a b", explain: "That is the default separator. Passing `sep` replaces it." },
+    { text: "An error — print takes one argument", explain: "print accepts any number of values, plus the keyword arguments sep and end." },
+  ]}
+/>
+
+<Exercise
+  title="Now you try"
+  lang="python"
+  starter={`# Print exactly these two lines:
+# Name: Ada
+# Year: 1843
+`}
+  solution={`print("Name:", "Ada")
+print("Year:", 1843)`}
+>
+Print two labelled lines. Note that `print` puts a space between arguments for you, so you do not need one at the end of `"Name:"`.
+</Exercise>
+
+<KeyPoints>
+- A Python file is a program; there is no `main` and no separate compile step.
+- `print` takes many values, joins them with `sep` (default a space) and ends with `end` (default a newline).
+- `#` starts a comment and runs to the end of the line.
+</KeyPoints>

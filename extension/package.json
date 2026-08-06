@@ -1,0 +1,121 @@
+{
+  "name": "learnhowtocode",
+  "displayName": "learnhowtocode",
+  "description": "Lessons and graded problem sets for C++, Arduino, Python and React, inside VS Code.",
+  "version": "0.1.0",
+  "publisher": "learnhowtocode",
+  "private": true,
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Education", "Programming Languages"],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "learnhowtocode",
+          "title": "learnhowtocode",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "learnhowtocode": [
+        { "id": "lhtc.lessons", "name": "Lessons" },
+        { "id": "lhtc.problems", "name": "Problems" }
+      ]
+    },
+    "commands": [
+      {
+        "command": "lhtc.openLesson",
+        "title": "Open Lesson",
+        "category": "learnhowtocode"
+      },
+      {
+        "command": "lhtc.startProblem",
+        "title": "Start Problem",
+        "category": "learnhowtocode",
+        "icon": "$(play)"
+      },
+      {
+        "command": "lhtc.runTests",
+        "title": "Run Tests Against the Current File",
+        "category": "learnhowtocode",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "lhtc.markComplete",
+        "title": "Mark Lesson Complete",
+        "category": "learnhowtocode"
+      },
+      {
+        "command": "lhtc.refresh",
+        "title": "Refresh",
+        "category": "learnhowtocode",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "lhtc.refresh", "when": "view == lhtc.lessons", "group": "navigation" },
+        { "command": "lhtc.refresh", "when": "view == lhtc.problems", "group": "navigation" }
+      ],
+      "view/item/context": [
+        {
+          "command": "lhtc.startProblem",
+          "when": "view == lhtc.problems && viewItem == problem",
+          "group": "inline"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "lhtc.runTests",
+          "when": "resourceFilename =~ /^solution\\.(cpp|py)$/",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "learnhowtocode",
+      "properties": {
+        "lhtc.workspaceFolder": {
+          "type": "string",
+          "default": "learnhowtocode",
+          "description": "Folder (relative to your workspace root) where problem scaffolds are created."
+        },
+        "lhtc.cppCompiler": {
+          "type": "string",
+          "default": "g++",
+          "description": "Compiler used to build C++ submissions. Must be on your PATH."
+        },
+        "lhtc.cppStandard": {
+          "type": "string",
+          "default": "c++17",
+          "description": "Value passed to -std= when compiling."
+        },
+        "lhtc.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Python interpreter used to run Python submissions."
+        },
+        "lhtc.timeLimitMultiplier": {
+          "type": "number",
+          "default": 3,
+          "description": "Multiplies each problem's time limit, since a local machine under load is slower than the reference."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "content": "node ../scripts/build-extension-content.mjs",
+    "compile": "npm run content && tsc -p .",
+    "watch": "tsc -watch -p .",
+    "package": "npm run compile && npx --yes @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
