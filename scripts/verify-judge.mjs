@@ -30,17 +30,39 @@ await page.goto(`${BASE}/problems/twin-totals`, {
 });
 await page.locator('[data-testid="problem-workbench"]').waitFor({ timeout: 30_000 });
 
-async function submit(source) {
+/**
+ * Submits `source` and waits for a verdict containing `expect`.
+ *
+ * Deliberately does not touch the DOM to clear the previous result: removing a
+ * React-managed node breaks reconciliation, so the panel never came back. The
+ * component unmounts the panel itself while judging, so waiting for the text
+ * we expect is both simpler and honest.
+ */
+async function submit(source, expect) {
   await page.locator(".cm-content").first().click();
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.insertText(source);
-  await page.evaluate(() => {
-    const el = document.querySelector('[data-testid="judge-result"]');
-    el?.remove();
-  });
   await page.getByRole("button", { name: "Submit" }).click();
-  await page.locator('[data-testid="judge-result"]').waitFor({ timeout: 600_000 });
-  return (await page.locator('[data-testid="judge-result"]').innerText())
+
+  try {
+    await page.waitForFunction(
+      (needle) =>
+        document
+          .querySelector('[data-testid="judge-result"]')
+          ?.textContent?.includes(needle) ?? false,
+      expect,
+      { timeout: 600_000 },
+    );
+  } catch {
+    // Fall through and report whatever the panel actually says.
+  }
+
+  return (
+    (await page
+      .locator('[data-testid="judge-result"]')
+      .innerText()
+      .catch(() => "(no verdict panel)")) ?? ""
+  )
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -49,11 +71,13 @@ console.log(`\nJudge verification against ${BASE}\n`);
 
 const correct = await submit(
   '#include <iostream>\nint main(){ long long a,b; std::cin>>a>>b; std::cout<<a+b<<" "<<a-b<<" "<<a*b<<"\\n"; return 0; }',
+  "Accepted",
 );
 record("correct submission is Accepted", correct.includes("Accepted"), correct.slice(0, 120));
 
 const wrong = await submit(
   '#include <iostream>\nint main(){ long long a,b; std::cin>>a>>b; std::cout<<a+b<<" "<<a+b<<" "<<a+b<<"\\n"; return 0; }',
+  "Wrong answer",
 );
 record(
   "wrong submission is Wrong answer (not a spurious timeout)",
@@ -61,7 +85,10 @@ record(
   wrong.slice(0, 120),
 );
 
-const broken = await submit("#include <iostream>\nint main(){ return zzz; }");
+const broken = await submit(
+  "#include <iostream>\nint main(){ return zzz; }",
+  "Compile error",
+);
 record(
   "uncompilable submission is a Compile error",
   broken.includes("Compile error"),
