@@ -70,6 +70,24 @@ export async function judge(
   const started = performance.now();
   const outcomes: TestOutcome[] = [];
 
+  /**
+   * The time budget actually enforced in the browser.
+   *
+   * A problem's `timeLimitMs` is a *contest* limit: the CPU time a native
+   * binary gets on a judge machine. What we can measure here is wall-clock
+   * time around a WebAssembly run, which includes instantiating a fresh wasm
+   * process (a couple of seconds on its own) and whatever else the tab is
+   * doing. Comparing the two directly marked every submission — including
+   * correct ones — as "time limit exceeded".
+   *
+   * So the limit here is deliberately generous: it exists to catch an infinite
+   * loop, not to discriminate between an O(n log n) and an O(n²) solution.
+   * Complexity is what the problem statement and the hints are for, and the
+   * VS Code extension — which times a real native binary — is where a
+   * meaningful limit can be enforced.
+   */
+  const browserBudgetMs = Math.max(timeLimitMs * 10, 15_000);
+
   // Compile once, then run the same binary against every test. Compiling per
   // test would repeat by far the most expensive step of the cycle — for a
   // 15-test suite that is 15 identical compiles.
@@ -104,7 +122,7 @@ export async function judge(
     const actual = normalizeOutput(result.stdout);
 
     let verdict: Verdict;
-    if (durationMs > timeLimitMs) verdict = "timeout";
+    if (durationMs > browserBudgetMs) verdict = "timeout";
     else if (!result.ok) verdict = "runtime_error";
     else if (actual !== expected) verdict = "wrong_answer";
     else verdict = "accepted";
