@@ -65,10 +65,17 @@ export function TrackCard({
             <BookOpenIcon className="size-3" /> {track.moduleCount} modules
           </span>
           <span className="inline-flex items-center gap-1">
-            <ClockIcon className="size-3" /> ~{Math.round(track.minutes / 60)} h
+            <ClockIcon className="size-3" /> {formatDuration(track.minutes)}
           </span>
         </div>
       </CardContent>
     </Card>
   );
+}
+
+/** "45 min" under an hour, "~3 h" above it — never the useless "~0 h". */
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = minutes / 60;
+  return `~${hours < 10 ? hours.toFixed(1).replace(/\.0$/, "") : Math.round(hours)} h`;
 }

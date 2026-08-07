@@ -95,35 +95,42 @@ export async function runCpp(
           if (phase === "link") handlers.onStatus?.("Linking…");
           if (phase === "run") handlers.onStatus?.("Running…");
         },
+        // Emscripten's print/printErr fire once per *line*, with the trailing
+        // newline already stripped. Re-add it on the way out, or every line of
+        // a program's output runs into the next one — and clang's carefully
+        // column-aligned diagnostics collapse into one unreadable string.
         onStdout: (t) => {
           stdout.push(t);
-          handlers.onStdout?.(t);
+          handlers.onStdout?.(t + "\n");
         },
         onStderr: (t) => {
           stderr.push(t);
-          handlers.onStderr?.(t);
+          handlers.onStderr?.(t + "\n");
         },
       });
 
-      // A failed compile writes diagnostics to the phase result rather than
-      // streaming them, so fold those in explicitly.
       const failed = result.exitCode !== 0;
-      const phaseErr =
+
+      // A diagnostic reaches us twice: streamed line-by-line through onStderr,
+      // and again whole on the phase result. Showing both printed every error
+      // twice, so pick one. They are the same text once the streamed lines are
+      // rejoined correctly; prefer the streamed copy and fall back to the
+      // phase result for the case where nothing was streamed at all.
+      const buildError =
         result.finalPhase === "compile"
           ? result.compile?.stderr
           : result.finalPhase === "link"
             ? result.link?.stderr
             : undefined;
 
-      if (phaseErr && !stderr.join("").includes(phaseErr.trim())) {
-        stderr.push(phaseErr);
-        handlers.onStderr?.(phaseErr);
-      }
+      const streamedStderr = stderr.join("\n");
+      const combinedStderr =
+        streamedStderr.trim() || (failed ? (buildError ?? "") : "");
 
       return {
         ok: !failed,
-        stdout: stdout.join(""),
-        stderr: stderr.join(""),
+        stdout: stdout.join("\n"),
+        stderr: combinedStderr,
         images: [],
         exitCode: result.exitCode,
         error: failed

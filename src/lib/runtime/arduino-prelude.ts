@@ -66,15 +66,19 @@ static unsigned long __lhtc_micros = 0;
 static int __lhtc_event_count = 0;
 static bool __lhtc_stop = false;
 
+// NOTE: the record marker is written as the OCTAL escape \001, never \x01.
+// A hex escape in C consumes *every* hex digit that follows it, so "\x01E"
+// is the single character 0x1E with the 'E' swallowed — which silently
+// corrupted the end-of-run record until it was spotted in the UI.
 static void __lhtc_emit(const char* kind, long a, long b) {
     if (__lhtc_event_count++ > LHTC_MAX_EVENTS) { __lhtc_stop = true; return; }
-    printf("\x01%s %lu %ld %ld\n", kind, __lhtc_micros, a, b);
+    printf("\001%s %lu %ld %ld\n", kind, __lhtc_micros, a, b);
 }
 
 static void __lhtc_emit_text(const char* kind, const char* text) {
     if (__lhtc_event_count++ > LHTC_MAX_EVENTS) { __lhtc_stop = true; return; }
     // Text is emitted raw; the parser reads to end of line.
-    printf("\x01%s %lu %s\n", kind, __lhtc_micros, text);
+    printf("\001%s %lu %s\n", kind, __lhtc_micros, text);
 }
 
 static void __lhtc_advance(unsigned long us) {
@@ -288,7 +292,7 @@ int main() {
         __lhtc_analog_out[i] = 0;
         __lhtc_analog_in[i] = 0;
     }
-    printf("\x01I %lu 0 0\n", 0UL);
+    printf("\001I %lu 0 0\n", 0UL);
     setup();
     while (!__lhtc_stop) {
         unsigned long before = __lhtc_micros;
@@ -297,7 +301,7 @@ int main() {
         // so charge it the ~100 µs a real Uno would spend on one pass.
         if (__lhtc_micros == before) __lhtc_advance(100);
     }
-    printf("\x01E %lu 0 0\n", __lhtc_micros);
+    printf("\001E %lu 0 0\n", __lhtc_micros);
     Serial.flush();
     return 0;
 }
@@ -328,14 +332,25 @@ export function parseArduinoOutput(stdout: string): {
   // whatever the sketch prints itself.
   const MARKER = "\u0001";
 
-  for (const line of stdout.split("\n")) {
-    if (!line.startsWith(MARKER)) {
-      if (line.length) plain.push(line);
-      continue;
-    }
-    const body = line.slice(MARKER.length);
-    const kind = body[0] as ArduinoEvent["kind"];
-    const rest = body.slice(2);
+  // Scan by marker rather than line by line. A record is not guaranteed to
+  // start a line: a sketch that printf()s without a trailing newline leaves
+  // the cursor mid-line and the next record lands right after it. Splitting on
+  // newlines first would then fail to recognise that record and leak it into
+  // the visible output — which is exactly what the trailing "end" record did
+  // before this was fixed.
+  const chunks = stdout.split(MARKER);
+
+  // Anything before the first marker is ordinary program output.
+  if (chunks[0]) plain.push(chunks[0]);
+
+  for (const chunk of chunks.slice(1)) {
+    const newline = chunk.indexOf("\n");
+    const record = newline === -1 ? chunk : chunk.slice(0, newline);
+    // Whatever follows the record's newline is ordinary output again.
+    const trailing = newline === -1 ? "" : chunk.slice(newline + 1);
+
+    const kind = record[0] as ArduinoEvent["kind"];
+    const rest = record.slice(2);
 
     if (kind === "S") {
       const sp = rest.indexOf(" ");
@@ -344,14 +359,22 @@ export function parseArduinoOutput(stdout: string): {
         t: Number(rest.slice(0, sp)),
         text: rest.slice(sp + 1),
       });
-      continue;
+    } else if (kind) {
+      const [t, a, b] = rest.split(" ").map(Number);
+      events.push({ kind, t, pin: a, value: b });
     }
 
-    const [t, a, b] = rest.split(" ").map(Number);
-    events.push({ kind, t, pin: a, value: b });
+    if (trailing) plain.push(trailing);
   }
 
-  return { events, plain: plain.join("\n") };
+  return {
+    events,
+    plain: plain
+      .join("")
+      .split("\n")
+      .filter((line) => line.length > 0)
+      .join("\n"),
+  };
 }
 
 /** Wraps a sketch so it can be handed to the C++ compiler unmodified. */
